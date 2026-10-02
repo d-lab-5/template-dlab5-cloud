@@ -1,4 +1,4 @@
-template-dlab5-net — a starting point for D-LAB-5 web applications:
+template-dlab5-cloud — a starting point for D-LAB-5 web applications:
 an npm-workspace monorepo with a non-workspace AWS Amplify Gen 2 backend,
 a Gatsby 5 site behind one Cognito gate.
 

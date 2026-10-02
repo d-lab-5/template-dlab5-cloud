@@ -21,7 +21,7 @@
  *   template.dlab5.net → <domain>
  *   template.dlab5     → <name lowercased>.dlab5    the brand in the rail
  *   D-LAB-5 Template   → <name>                     titles and metadata
- *   d-lab-5/template-dlab5-net → <repo>             the Source link
+ *   d-lab-5/template-dlab5-cloud → <repo>             the Source link
  *
  * What it does NOT do, deliberately:
  *
@@ -126,7 +126,7 @@ if (args.prefix === "app") {
 }
 
 const domain = args.domain || `${args.slug}.dlab5.net`;
-const repo = args.repo || `d-lab-5/${args.slug}-dlab5-net`;
+const repo = args.repo || `d-lab-5/${args.slug}-dlab5-cloud`;
 const brand = args.slug;
 
 /* -- a clean tree ---------------------------------------------------------- */
@@ -164,8 +164,8 @@ if (!args.dryRun) {
  * `@dlab5/app-core` is not half-rewritten by the bare `app-` rule below it.
  */
 const RULES = [
-  ["d-lab-5/template-dlab5-net", repo],
-  ["template-dlab5-net", `${args.slug}-dlab5-net`],
+  ["d-lab-5/template-dlab5-cloud", repo],
+  ["template-dlab5-cloud", repo.split("/").pop()],
   ["template.dlab5.net", domain],
   ["template.dlab5", `${brand}.dlab5`],
   ["@dlab5/app-", `@dlab5/${args.slug}-`],

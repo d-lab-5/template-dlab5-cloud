@@ -323,7 +323,7 @@ export function Shell({ children, workspace }: ShellProps) {
             <li>
               <a
                 className="app-rail__item"
-                href="https://github.com/d-lab-5/template-dlab5-net"
+                href="https://github.com/d-lab-5/template-dlab5-cloud"
                 target="_blank"
                 rel="noreferrer noopener"
               >

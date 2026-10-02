@@ -1,5 +1,5 @@
 {
-  "name": "template-dlab5-net",
+  "name": "template-dlab5-cloud",
   "private": true,
   "description": "D-LAB-5 fullstack template \u2014 Gatsby 5 frontend, Amplify Gen 2 backend, one Cognito gate",
   "license": "GPL-3.0-or-later",
