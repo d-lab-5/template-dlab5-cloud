@@ -1,126 +1,84 @@
 import * as React from "react";
 import type { HeadFC, PageProps } from "gatsby";
+import { Link } from "gatsby";
 import { Shell } from "../components/Shell";
 import { useSession } from "../components/AuthGate";
-import { NewWorkspaceForm } from "../components/NewWorkspaceForm";
-import { listWorkspaces } from "../lib/data";
-import type { Workspace } from "../lib/data";
+import { listSpaces } from "../lib/data";
+import type { Space } from "../lib/data";
+import { useT } from "../lib/i18n";
 
 /**
- * The launcher.
+ * The launcher: the spaces this person can open, grouped by tenant.
  *
  * Reached only after AuthGate has a session, so there is no signed-out branch
  * to handle here — and no page below needs one either. That is the whole point
  * of gating at the root.
+ *
+ * Spaces are not created here: a tenant's admins add them in Settings (the
+ * tenants function creates the row and its Cognito group together), and
+ * operators create tenants there too.
  */
 const IndexPage: React.FC<PageProps> = () => {
   const session = useSession();
-  const [workspaces, setWorkspaces] = React.useState<Workspace[] | null>(null);
+  const { t } = useT();
+  const [spaces, setSpaces] = React.useState<Space[] | null>(null);
   const [error, setError] = React.useState<string | null>(null);
-  const [creating, setCreating] = React.useState(false);
 
   React.useEffect(() => {
-    listWorkspaces()
-      .then(setWorkspaces)
-      .catch((err: unknown) =>
-        setError(err instanceof Error ? err.message : String(err))
-      );
+    listSpaces()
+      .then(setSpaces)
+      .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
   }, []);
 
+  const tenants = [...new Set((spaces ?? []).map((s) => s.tenantName ?? s.tenantId))];
+
   return (
-    <Shell>
+    <Shell title={t("nav.spaces")}>
       <div className="app-hero">
         <div className="app-hero__copy">
           {/* No standing copy here. The cards below say what this page is for,
               and a paragraph explaining the product to someone who has already
               signed in is a paragraph nobody reads twice. */}
-          {session.isAdmin && !creating && (
-            <div className="app-hero__actions">
-              <button
-                type="button"
-                className="app-button"
-                onClick={() => setCreating(true)}
-              >
-                New workspace
-              </button>
-            </div>
-          )}
-
           <dl className="app-stats">
             <div className="app-stat">
-              <dt>{workspaces?.length ?? "—"}</dt>
-              <dd>Workspaces</dd>
+              <dt>{spaces?.length ?? "—"}</dt>
+              <dd>{t("home.spaces")}</dd>
             </div>
             <div className="app-stat">
-              <dt>
-                {session.groups.filter((g) => g.startsWith("app-")).length}
-              </dt>
-              <dd>Groups you hold</dd>
+              <dt>{session.tenants.length}</dt>
+              <dd>{t("home.admin")}</dd>
             </div>
             <div className="app-stat">
-              <dt>{session.isAdmin ? "admin" : "member"}</dt>
-              <dd>Your role</dd>
+              <dt>{session.isOperator ? t("set.role.operator") : session.isAdmin ? t("set.role.admin") : session.isMember ? t("set.role.member") : t("set.role.none")}</dt>
+              <dd>{t("home.role")}</dd>
             </div>
           </dl>
         </div>
       </div>
 
-      {session.isAdmin && creating && (
-        <NewWorkspaceForm
-          onCreated={(workspace) =>
-            setWorkspaces((current) => [...(current ?? []), workspace])
-          }
-        />
-      )}
+      <h1 className="app-cards__heading">{t("nav.spaces")}</h1>
 
-      <h1 className="app-cards__heading">Workspaces</h1>
+      {error && <p className="app-error" role="alert">{error}</p>}
+      {!spaces && !error && <p className="app-muted">{t("lib.loading")}</p>}
 
-      {error && (
-        <p className="app-error" role="alert">
-          {error}
-        </p>
-      )}
-
-      {!workspaces && !error && <p className="app-muted">Loading…</p>}
-
-      {workspaces?.length === 0 && (
+      {spaces?.length === 0 && (
         <div className="app-empty">
-          <p>
-            {session.isAdmin
-              ? "No workspaces yet."
-              : "You do not have access to any workspace."}
-          </p>
+          <p>{t("home.none")}</p>
           <p className="app-muted">
-            {session.isAdmin ? (
-              <>Use &ldquo;New workspace&rdquo; above to create the first one.</>
-            ) : (
-              <>
-                Access is granted by adding your account to a workspace&rsquo;s{" "}
-                <code>app-&lt;slug&gt;</code> group in Cognito. Ask an
-                administrator.
-              </>
-            )}
+            {session.isOperator ? <>{t("home.none.operator")} <Link to="/settings/">{t("nav.settings")}</Link></> : t("home.none.member")}
           </p>
         </div>
       )}
 
-      {workspaces && workspaces.length > 0 && (
+      {spaces && spaces.length > 0 && (
         <ul className="app-cards">
-          {workspaces.map((workspace) => (
-            <li key={workspace.slug}>
-              <a className="app-card" href={`/w/${workspace.slug}/`}>
-                <span className="app-card__title">{workspace.name}</span>
-                {workspace.description && (
-                  <span className="app-card__body">{workspace.description}</span>
-                )}
+          {spaces.map((space) => (
+            <li key={space.id}>
+              <a className="app-card" href={`/w/${space.id}/`}>
+                <span className="app-card__title">{space.kind === "private" ? "🔒 " : ""}{space.name}</span>
                 {/* The id, deliberately not shown. ADR-0003: never render an id
-                    where a name belongs. What a reader needs here is who is in
-                    the middle of editing, not the partition key. */}
-                {workspace.lockedBy && (
-                  <span className="app-card__meta">
-                    being edited by {workspace.lockedBy}
-                  </span>
-                )}
+                    where a name belongs. */}
+                {tenants.length > 1 && space.tenantName && <span className="app-card__meta">{space.tenantName}</span>}
               </a>
             </li>
           ))}
@@ -132,4 +90,4 @@ const IndexPage: React.FC<PageProps> = () => {
 
 export default IndexPage;
 
-export const Head: HeadFC = () => <title>Workspaces · template.dlab5</title>;
+export const Head: HeadFC = () => <title>Spaces · template.dlab5</title>;

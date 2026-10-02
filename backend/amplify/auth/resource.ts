@@ -12,20 +12,17 @@ import { defineAuth } from "@aws-amplify/backend";
  *
  * Only ONE static group is declared here:
  *
- *   - app-admins   Platform administrators. Read and write every workspace,
- *                  create workspaces, manage Cognito users and groups.
+ *   - app-admins   Operators. They run the platform: create tenants, see
+ *                  tenant names and edges, release edges. They read NO
+ *                  tenant content by being operators (ADR-0005).
  *
- * Per-workspace groups are deliberately NOT declared here. Each workspace owns
- * a Cognito group named `app-<slug>` (see Workspace.group in
- * data/resource.ts). Declaring them in `defineAuth` would mean a backend
- * deploy per new workspace, and Amplify's static `defineStorage` rules cannot
- * reference them anyway — which is exactly why S3 access goes through the
- * objectProxy function instead. ADR-0004.
- *
- * In this template the `app-<slug>` group is created BY HAND in the Cognito
- * console when a workspace is created. A fork that outgrows that should add an
- * admin function minting the row and the group in one mutation — see the note
- * at the foot of backend.ts for the CloudFormation trap it has to avoid.
+ * Per-tenant and per-space groups are deliberately NOT declared here. Each
+ * tenant's admins are a Cognito group named like its id (`t-…`), each space's
+ * readers one named like the space's (`s-…`). The `tenants` function creates
+ * them at runtime together with their rows; declaring them in `defineAuth`
+ * would mean a backend deploy per tenant, and Amplify's static `defineStorage`
+ * rules cannot reference them anyway — which is exactly why S3 access goes
+ * through the objectProxy function instead. ADR-0004, ADR-0005.
  */
 export const auth = defineAuth({
   loginWith: {
@@ -45,6 +42,10 @@ export const auth = defineAuth({
       },
     },
   },
+  // Two-step sign-in with an authenticator app (TOTP). OPTIONAL in the pool,
+  // so members who only look are not asked; tenant admins and operators must
+  // set it up (site: AuthGate; Lambdas: functions/shared/mfa.ts).
+  multifactor: { mode: "OPTIONAL", totp: true },
   groups: ["app-admins"],
   accountRecovery: "EMAIL_ONLY",
 });

@@ -1,0 +1,16 @@
+{
+  "name": "@dlab5/app-i18n",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The interface texts: English (master), German, French. Shared by the site and its edges.",
+  "type": "module",
+  "files": ["en.json", "de.json", "fr.json"],
+  "scripts": {
+    "test": "node --test __tests__/*.test.mjs"
+  },
+  "exports": {
+    "./en.json": "./en.json",
+    "./de.json": "./de.json",
+    "./fr.json": "./fr.json"
+  }
+}

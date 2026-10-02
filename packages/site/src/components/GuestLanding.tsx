@@ -5,7 +5,7 @@ import { ThemeSegments } from "./ThemeSegments";
  * What a visitor sees before signing in.
  *
  * ADR-0002 settled that there is no anonymous access and no self-service
- * sign-up. Nothing here is fetched, no workspace is named, and the only
+ * sign-up. Nothing here is fetched, no tenant or space is named, and the only
  * control that does anything is the sign-in form passed in as `children`. A
  * page that showed counts, names or a "recent activity" strip would be leaking
  * to someone who has not signed in.
@@ -41,7 +41,7 @@ export function GuestLanding({ children }: { children: React.ReactNode }) {
           <h2 className="app-rail__sectionlabel">Accounts</h2>
           <p className="app-rail__note">
             There is no sign-up. Accounts are created by an administrator, who
-            also grants access to a workspace. If you were invited, use the
+            also grants access to a tenant's spaces. If you were invited, use the
             temporary password from your invitation email — you will be asked
             to choose a new one.
           </p>

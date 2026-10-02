@@ -7,7 +7,7 @@ import { Amplify } from "aws-amplify";
  * route on this site sits behind Cognito and renders its data client-side, so
  * there is nothing to configure during server rendering, and keeping it out of
  * SSR means the static build cannot break on a missing or malformed outputs
- * file. Constraint 4 in the dlab5-fullstack-template skill.
+ * file. Constraint 4 in the dlab5-cloud-template skill.
  *
  * The plain `require` is deliberate: `import … with { type: "json" }` is
  * rejected by Gatsby's Babel/webpack pipeline.

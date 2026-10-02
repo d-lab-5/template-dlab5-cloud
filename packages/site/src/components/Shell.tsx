@@ -2,24 +2,25 @@ import * as React from "react";
 import { Link } from "gatsby";
 import { signOutAndReload, useSession } from "./AuthGate";
 import { ThemeSegments } from "./ThemeSegments";
-import { listWorkspaces } from "../lib/data";
-import type { Workspace } from "../lib/data";
+import { listSpaces } from "../lib/data";
+import type { Space } from "../lib/data";
+import { LangPicker, useT } from "../lib/i18n";
 
 /**
  * The ONE application shell.
  *
- * One component, two layouts. At `/` there is no workspace, so there is
- * nothing for a rail to navigate and it shows the switcher alone; inside a
- * workspace it renders the full rail.
+ * One component, two layouts. Outside a space (`/`, Settings, About, /link)
+ * there is nothing for a rail to navigate and it shows the switcher alone;
+ * inside a space it renders the full rail.
  *
  * Resist adding a second shell for the next layout that does not quite fit.
  * The DHC Portal ended up with two and the seam still shows: a header that is
  * one pixel taller on half the routes, a theme toggle that exists twice and
  * disagrees with itself. If a screen needs a different frame, add a prop.
  *
- * The rail is PER-WORKSPACE rather than global, because a workspace is this
- * app's authorization boundary — it has its own Cognito group — so navigation
- * cannot sit above it.
+ * The rail is PER-SPACE rather than global, because a space is this app's
+ * authorization boundary — it has its own Cognito group (ADR-0005) — so
+ * navigation cannot sit above it.
  */
 
 export interface RailItem {
@@ -46,7 +47,7 @@ const icon = (path: React.ReactNode) => (
 );
 
 /**
- * The workspace's own views. Placeholders — this array and `toolItems` below
+ * The space's own views. Placeholders — this array and `toolItems` below
  * are the two a fork edits first.
  *
  * Keep `key` in step with the `active` value each page passes to Shell, and
@@ -54,18 +55,18 @@ const icon = (path: React.ReactNode) => (
  * route and a screen are three different things, and collapsing them into one
  * table is how a route ends up with no way to be inactive.
  */
-export function railItems(slug: string): RailItem[] {
+export function railItems(id: string): RailItem[] {
   return [
     {
       key: "overview",
       label: "Overview",
-      href: `/w/${slug}/`,
+      href: `/w/${id}/`,
       icon: icon(<path d="M4 6h16M4 12h11M4 18h7" />),
     },
     {
       key: "items",
       label: "Items",
-      href: `/w/${slug}/items/`,
+      href: `/w/${id}/items/`,
       icon: icon(
         <>
           <rect x="3" y="4" width="7" height="6" rx="1.4" />
@@ -77,7 +78,7 @@ export function railItems(slug: string): RailItem[] {
     {
       key: "reports",
       label: "Reports",
-      href: `/w/${slug}/reports/`,
+      href: `/w/${id}/reports/`,
       icon: icon(
         <>
           <path d="M9 4h7l4 4v12a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z" />
@@ -92,17 +93,17 @@ export function railItems(slug: string): RailItem[] {
 /**
  * Tools, kept apart from the views ON PURPOSE.
  *
- * The Workspace section answers "what does this look like"; these answer "how
+ * The Space section answers "what does this look like"; these answer "how
  * do things get in and out of it". Mixing them turns a rail into a list of
  * eleven items with no shape, and buries an importer inside a screen where
  * nobody looking for one would think to check.
  */
-export function toolItems(slug: string): RailItem[] {
+export function toolItems(id: string): RailItem[] {
   return [
     {
       key: "import",
       label: "Import",
-      href: `/w/${slug}/import/`,
+      href: `/w/${id}/import/`,
       // An arrow entering a tray.
       icon: icon(
         <>
@@ -115,7 +116,7 @@ export function toolItems(slug: string): RailItem[] {
     {
       key: "export",
       label: "Export",
-      href: `/w/${slug}/export/`,
+      href: `/w/${id}/export/`,
       icon: icon(
         <>
           <path d="M12 13V3" />
@@ -148,60 +149,59 @@ function Mark() {
 }
 
 /**
- * Choosing a workspace.
+ * Choosing a space.
  *
- * A select rather than a list of links: the number of workspaces is unbounded,
+ * A select rather than a list of links: the number of spaces is unbounded,
  * and a rail listing forty of them scrolls the appearance and account sections
  * off the bottom — at which point the rail has stopped being navigation. It
- * carries the current workspace inside itself, and rests unselected at `/`.
+ * carries the current space inside itself, and rests unselected elsewhere.
+ * With more than one tenant, the tenant's name prefixes each space.
  */
-function WorkspaceSwitcher({ slug }: { slug?: string }) {
-  const [workspaces, setWorkspaces] = React.useState<Workspace[] | null>(null);
+function SpaceSwitcher({ id }: { id?: string }) {
+  const { t } = useT();
+  const [spaces, setSpaces] = React.useState<Space[] | null>(null);
 
   React.useEffect(() => {
-    listWorkspaces()
-      .then(setWorkspaces)
-      .catch(() => setWorkspaces([]));
+    listSpaces()
+      .then(setSpaces)
+      .catch(() => setSpaces([]));
   }, []);
 
-  const empty = workspaces !== null && workspaces.length === 0;
+  const empty = spaces !== null && spaces.length === 0;
+  const manyTenants = new Set(spaces?.map((s) => s.tenantId)).size > 1;
 
   return (
     <div className="app-rail__switcher">
-      <label className="app-rail__switcherlabel" htmlFor="app-workspace">
-        {slug ? "Workspace" : "Open a workspace"}
+      <label className="app-rail__switcherlabel" htmlFor="app-space">
+        {id ? t("shell.space") : t("shell.openspace")}
       </label>
       <select
-        id="app-workspace"
-        value={slug ?? ""}
+        id="app-space"
+        value={id ?? ""}
         disabled={empty}
         onChange={(e) => {
           if (!e.target.value) return;
           // A full navigation rather than client routing: every screen reloads
-          // its data from the new workspace anyway, and this keeps the URL and
-          // the rail in step without a router dependency.
+          // its data from the new space anyway, and this keeps the URL and the
+          // rail in step without a router dependency.
           window.location.assign(`/w/${e.target.value}/`);
         }}
       >
-        {/* At `/` nothing is open yet, so the control needs a resting state
-            that is not a workspace. */}
-        {!slug && (
+        {/* Outside a space nothing is open yet, so the control needs a
+            resting state that is not a space. */}
+        {!id && (
           <option value="">
-            {workspaces === null
-              ? "Loading…"
-              : empty
-                ? "No workspaces yet"
-                : `Choose one of ${workspaces.length}…`}
+            {spaces === null ? t("lib.loading") : empty ? t("shell.nospaces") : t("shell.choose", { n: spaces.length })}
           </option>
         )}
-        {/* The current workspace is always an option, even before the list
+        {/* The current space is always an option, even before the list
             arrives, so the control never renders empty or wrong. */}
-        {slug && !workspaces?.some((w) => w.slug === slug) && (
-          <option value={slug}>{workspaces === null ? "Loading…" : slug}</option>
+        {id && !spaces?.some((s) => s.id === id) && (
+          <option value={id}>{spaces === null ? t("lib.loading") : id}</option>
         )}
-        {workspaces?.map((w) => (
-          <option key={w.slug} value={w.slug}>
-            {w.name}
+        {spaces?.map((s) => (
+          <option key={s.id} value={s.id}>
+            {manyTenants && s.tenantName ? `${s.tenantName} · ` : ""}{s.name}
           </option>
         ))}
       </select>
@@ -254,23 +254,27 @@ function RailLinks({ items, active }: { items: RailItem[]; active: string }) {
 interface ShellProps {
   children: React.ReactNode;
   /**
-   * Present inside a workspace; absent at `/`.
+   * Present inside a space; absent elsewhere.
    *
-   * `name` is what a reader sees; `slug` is the opaque id (ADR-0003) and must
+   * `name` is what a reader sees; `id` is the opaque id (ADR-0003) and must
    * never be rendered where a name belongs.
    */
-  workspace?: { slug: string; name?: string | null; active: string };
+  space?: { id: string; name?: string | null; active: string };
+  /** Outside a space: which account entry is current, and the header title. */
+  active?: string;
+  title?: string;
 }
 
-export function Shell({ children, workspace }: ShellProps) {
+export function Shell({ children, space, active, title }: ShellProps) {
   const session = useSession();
+  const { t } = useT();
   const [railOpen, setRailOpen] = React.useState(true);
 
   return (
     <div className="app-shell app-shell--railed">
       <nav
         className={`app-rail${railOpen ? "" : " app-rail--closed"}`}
-        aria-label={workspace ? "Workspace views" : "Workspaces"}
+        aria-label={space ? t("shell.spaceviews") : t("nav.spaces")}
       >
         <Link className="app-rail__brand" to="/">
           <Mark />
@@ -279,45 +283,64 @@ export function Shell({ children, workspace }: ShellProps) {
           </span>
         </Link>
 
-        {workspace ? (
+        {space ? (
           <>
-            <WorkspaceSwitcher slug={workspace.slug} />
-            <RailSection label="Workspace">
-              <RailLinks
-                items={railItems(workspace.slug)}
-                active={workspace.active}
-              />
+            <SpaceSwitcher id={space.id} />
+            <RailSection label={t("shell.space")}>
+              <RailLinks items={railItems(space.id)} active={space.active} />
             </RailSection>
-            <RailSection label="Tools">
-              <RailLinks
-                items={toolItems(workspace.slug)}
-                active={workspace.active}
-              />
+            <RailSection label={t("shell.tools")}>
+              <RailLinks items={toolItems(space.id)} active={space.active} />
             </RailSection>
           </>
         ) : (
-          // At `/` the rail offers workspaces rather than views. The views all
-          // act on a workspace, so showing them here would be five controls
+          // Outside a space the rail offers spaces rather than views. The
+          // views all act on a space, so showing them here would be controls
           // that cannot do anything until one is chosen. The switcher carries
           // its own label, so a section wrapper would say the word twice.
-          <WorkspaceSwitcher />
+          <SpaceSwitcher />
         )}
 
-        <RailSection label="Appearance">
+        <RailSection label={t("shell.appearance")}>
           <ThemeSegments />
+          <LangPicker className="app-select app-select--small" />
         </RailSection>
 
-        <RailSection label="Account">
+        <RailSection label={t("shell.account")}>
           <ul className="app-rail__items">
             <li>
-              <Link className="app-rail__item" to="/settings/">
+              <Link className={`app-rail__item${active === "settings" ? " app-rail__item--on" : ""}`} to="/settings/">
                 {icon(
                   <>
                     <circle cx="12" cy="12" r="3" />
                     <path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1Z" />
                   </>
                 )}
-                Settings
+                {t("nav.settings")}
+              </Link>
+            </li>
+            {(session.isAdmin || session.isOperator) && (
+              <li>
+                <Link className={`app-rail__item${active === "link" ? " app-rail__item--on" : ""}`} to="/link/">
+                  {icon(
+                    <>
+                      <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" />
+                      <path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
+                    </>
+                  )}
+                  {t("nav.link")}
+                </Link>
+              </li>
+            )}
+            <li>
+              <Link className={`app-rail__item${active === "about" ? " app-rail__item--on" : ""}`} to="/about/">
+                {icon(
+                  <>
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 11v5M12 8h.01" />
+                  </>
+                )}
+                {t("nav.about")}
               </Link>
             </li>
             <li>
@@ -345,13 +368,13 @@ export function Shell({ children, workspace }: ShellProps) {
                     <path d="M14 17l5-5-5-5M19 12H9" />
                   </>
                 )}
-                Sign out
+                {t("nav.signout")}
               </button>
             </li>
           </ul>
           <p className="app-rail__who">
             {session.email ?? session.username}
-            {session.isAdmin ? " · admin" : ""}
+            {session.isOperator ? ` · ${t("set.role.operator")}` : session.isAdmin ? ` · ${t("set.role.admin")}` : ""}
           </p>
         </RailSection>
       </nav>
@@ -362,13 +385,13 @@ export function Shell({ children, workspace }: ShellProps) {
             type="button"
             className="app-linkbutton app-shell__railtoggle"
             onClick={() => setRailOpen((open) => !open)}
-            aria-label={railOpen ? "Hide menu" : "Show menu"}
+            aria-label={railOpen ? t("shell.hidemenu") : t("shell.showmenu")}
             aria-expanded={railOpen}
           >
             ☰
           </button>
           <span className="app-shell__title">
-            {workspace ? (workspace.name ?? workspace.slug) : "Workspaces"}
+            {space ? (space.name ?? space.id) : (title ?? t("nav.spaces"))}
           </span>
           <span className="app-shell__meta">/ internal · admin-provisioned</span>
           <span className="app-shell__spacer" />

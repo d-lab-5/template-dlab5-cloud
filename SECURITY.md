@@ -43,13 +43,14 @@ Three places, and only three:
 2. **AppSync's model authorization rules** in `data/resource.ts`. `allow.group`
    and `allow.groupDefinedIn` are enforced server-side.
 3. **`objectProxy`.** It compares the caller's `cognito:groups` against the
-   workspace's own group before touching S3.
+   space's group, or its tenant's admins group, before touching S3. Operators
+   are not let in by being operators (ADR-0005).
 
 Everything in `packages/site` is ergonomics. A check in a React component
 improves the experience of a legitimate user and stops nobody. In particular:
 
 - `defineStorage`'s access rules are coarse and are **not** the boundary for
-  workspace content — they exist so the bucket is not world-open. ADR-0004.
+  space content — there is no rule for `spaces/*` at all. ADR-0004.
 - `allow.authenticated()` on the custom mutations means "signed in is enough to
   call this". It is not the access check; the Lambda is.
 
@@ -57,8 +58,8 @@ improves the experience of a legitimate user and stops nobody. In particular:
 
 - Grant the narrowest IAM action that does the job, and say in a comment what
   the function must therefore be unable to do. `objectProxy` can read the
-  `Workspace` row and cannot write it — deliberately, so it cannot rewrite the
-  metadata it authorises against.
+  `Space` and `Tenant` rows and cannot write them — deliberately, so it cannot
+  rewrite the metadata it authorises against.
 - Return the same error for "does not exist" and "not yours". Distinguishing
   them lets any signed-in user enumerate ids.
 - Log the detail, return a generic message. An S3 or DynamoDB error string can

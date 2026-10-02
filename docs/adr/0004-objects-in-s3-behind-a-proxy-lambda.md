@@ -2,6 +2,8 @@
 
 Status: **Accepted** · Date: 2026-08-28
 
+> **Amended by ADR-0005.** "A workspace" below is now a space. `objectProxy` checks the space's readers group or its tenant's admins group — not `app-admins`, which no longer reads content — and the object is `spaces/<id>/data.json`. The storage rules have no entry for `spaces/*`.
+
 ## Context
 
 A workspace's content can be large and is edited as a whole. Two questions had

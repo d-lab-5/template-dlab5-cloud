@@ -9,7 +9,7 @@
  * fashionable and it is not enforced by tooling; it is here so that a class in
  * the markup can be found in this file by reading it.
  *
- * NOTE (constraint 13 in the dlab5-fullstack-template skill): a change to
+ * NOTE (constraint 13 in the dlab5-cloud-template skill): a change to
  * this file needs a clean build to
  * appear. `npm run build` reuses the cached stylesheet and emits an IDENTICAL
  * content hash, so the page renders with the old CSS and your edit looks like
@@ -871,3 +871,159 @@ a {
     scroll-behavior: auto !important;
   }
 }
+
+/* -- tenants, spaces, edges, two-step sign-in (from the Mediathek) -------- */
+
+.app-select,
+.app-input {
+  background: var(--app-bg-sunken);
+  color: var(--app-text);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  padding: var(--app-space-1) var(--app-space-2);
+  font: inherit;
+  max-width: 100%;
+}
+
+.app-select:focus-visible,
+.app-input:focus-visible {
+  outline: 2px solid var(--app-accent);
+  outline-offset: 1px;
+}
+
+.app-chip__x {
+  background: none; border: 0; padding: 0 0 0 4px; cursor: pointer;
+  color: inherit; font: inherit; opacity: 0.7;
+}
+
+.app-chip__x:hover { opacity: 1; }
+
+.app-select--small { padding-block: 2px; font-size: 0.8rem; }
+
+.app-unknown__form .app-input { width: 12rem; }
+
+.app-link { max-width: 36rem; }
+
+.app-link__form { display: flex; gap: var(--app-space-2); margin: var(--app-space-2) 0; }
+
+.app-link__code {
+  font-family: var(--app-font-mono);
+  font-size: 1.4rem;
+  letter-spacing: 0.15em;
+  width: 11ch;
+  text-transform: uppercase;
+}
+
+.app-link__actions { display: flex; gap: var(--app-space-2); flex-wrap: wrap; align-items: center; }
+
+.app-link__actions .app-panel__hint { flex-basis: 100%; }
+
+.app-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--app-space-1) var(--app-space-4);
+  margin: var(--app-space-4) 0;
+}
+
+.app-facts dt { color: var(--app-text-muted); }
+
+.app-facts dd { margin: 0; overflow-wrap: anywhere; }
+
+.app-ok { color: var(--app-success); }
+
+.app-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+
+.app-table th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--app-text-muted);
+  border-bottom: 1px solid var(--app-border);
+  padding: var(--app-space-1) var(--app-space-2);
+}
+
+.app-table td {
+  border-bottom: 1px solid var(--app-border);
+  padding: var(--app-space-1) var(--app-space-2);
+  overflow-wrap: anywhere;
+}
+
+.app-steps {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-2);
+  margin: 0 0 var(--app-space-4);
+  padding: 0;
+  align-items: center;
+}
+
+.app-steps li {
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-2);
+  padding: var(--app-space-1) var(--app-space-3);
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  color: var(--app-text-muted);
+  font-size: 0.9rem;
+}
+
+.app-steps li span {
+  display: grid;
+  place-items: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  background: var(--app-surface-raised);
+  font-size: 0.75rem;
+}
+
+.app-steps li.is-on { border-color: var(--app-accent); color: var(--app-text); }
+
+.app-steps li.is-on span { background: var(--app-accent); color: var(--app-text-inverse); }
+
+.app-steps li.is-done span { background: var(--app-success); color: var(--app-text-inverse); }
+
+.app-steps .app-steps__lang { margin-left: auto; border: 0; padding: 0; }
+
+.app-form { display: grid; gap: var(--app-space-2); }
+
+/* Households and vaults (Settings, ADR-0005) */
+.app-panel__sub { font-size: 0.95rem; margin: var(--app-space-3) 0 var(--app-space-1); }
+
+.app-space { border-top: 1px solid var(--app-border); margin-top: var(--app-space-2); }
+
+.app-members__list { list-style: none; display: flex; flex-wrap: wrap; gap: var(--app-space-1); padding: 0; margin: var(--app-space-1) 0; }
+
+.app-members__add { display: flex; gap: var(--app-space-2); flex-wrap: wrap; margin: var(--app-space-1) 0; }
+
+.app-members__add .app-input { min-width: 16rem; }
+
+.app-id { font-family: var(--app-font-mono); font-size: 0.75rem; font-weight: 400; }
+
+/* a household's code for another site */
+.app-sitecode { margin: 0 0 0.75rem; }
+
+.app-sitecode summary { cursor: pointer; color: var(--app-text-muted); font-size: 0.875rem; }
+
+.app-sitecode code { overflow-wrap: anywhere; user-select: all; }
+
+/* two-step sign-in: QR, key, code */
+.app-mfa { display: grid; gap: var(--app-space-3); max-width: 22rem; }
+
+.app-mfa__qr { justify-self: start; padding: var(--app-space-2); background: #fff; border-radius: var(--app-radius-sm, 4px); line-height: 0; }
+
+.app-mfa__key { font-family: var(--app-font-mono); letter-spacing: 0.04em; overflow-wrap: anywhere; user-select: all; }
+
+/* Settings → install an edge on another PC */
+.app-steps { margin: 0; padding-left: 1.25rem; display: grid; gap: var(--app-space-1); font-size: 0.875rem; }
+
+.app-install { display: flex; flex-wrap: wrap; gap: var(--app-space-2); }
+
+.app-install a { text-decoration: none; }
+
+.app-install__sha code { overflow-wrap: anywhere; font-size: 0.75rem; }
+
+.app-install__manual summary { cursor: pointer; font-size: 0.875rem; color: var(--app-text-muted); }
+
+.app-install__cmd { font-family: var(--app-font-mono); font-size: 0.75rem; background: var(--app-bg-sunken); padding: var(--app-space-2) var(--app-space-3); border-radius: var(--app-radius-sm); overflow-x: auto; }

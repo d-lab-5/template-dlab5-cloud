@@ -9,22 +9,30 @@
     "sandbox:delete": "ampx sandbox delete",
     "sync-outputs": "cp amplify_outputs.json ../packages/site/src/amplify_outputs.json",
     "pipeline-deploy": "ampx pipeline-deploy",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test amplify/functions/*/*.test.ts"
   },
   "devDependencies": {
     "@aws-amplify/backend": "^1.16.0",
     "@aws-amplify/backend-cli": "^1.7.0",
     "@types/aws-lambda": "^8.10.145",
+    "@types/n3": "^1.26.4",
     "@types/node": "^22.7.0",
     "aws-cdk-lib": "^2.158.0",
     "constructs": "^10.4.0",
+    "tsx": "^4.23.15",
     "typescript": "^5.6.0"
   },
   "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.1146.0",
     "@aws-sdk/client-dynamodb": "^3.658.0",
     "@aws-sdk/client-s3": "^3.658.0",
     "@aws-sdk/lib-dynamodb": "^3.658.0",
-    "@aws-sdk/s3-request-presigner": "^3.658.0"
+    "@aws-sdk/s3-request-presigner": "^3.658.0",
+    "@aws-sdk/util-dynamodb": "^3.996.9",
+    "@zazuko/env-node": "^1.0.4",
+    "n3": "^1.26.0",
+    "rdf-validate-shacl": "^0.6.5"
   },
   "engines": {
     "node": ">=22"

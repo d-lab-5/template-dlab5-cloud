@@ -2,22 +2,38 @@ import * as React from "react";
 import {
   confirmSignIn,
   fetchAuthSession,
+  fetchMFAPreference,
   getCurrentUser,
   signIn,
   signOut,
+  type SignInOutput,
 } from "aws-amplify/auth";
-import { ADMIN_GROUP, GROUP_PREFIX } from "@dlab5/app-core";
+import { ADMIN_GROUP, tenantsOf, isMember } from "@dlab5/app-core";
 import { GuestLanding } from "./GuestLanding";
+import { MfaSetup, TotpEnroll } from "./MfaSetup";
+import { useAccountLang, useT } from "../lib/i18n";
 import { isConfigured } from "../lib/amplify";
 
 export interface Session {
   username: string;
   email?: string;
+  /** The language saved on the account (Cognito locale), if any. */
+  locale?: string;
   groups: string[];
+  /** ADR-0005: an admin of at least one tenant (manages its spaces, members and edges). */
   isAdmin: boolean;
-  /** Cognito groups named `app-<slug>` map 1:1 to workspaces the user opens. */
-  workspaceSlugs: string[];
+  /** The tenants this person administers (their ids are the admins' groups). */
+  tenants: string[];
+  /** A reader of a space or a tenant's admin: may see tenant content. */
+  isMember: boolean;
+  /** An operator (app-admins): runs the platform, creates tenants; reads no content unless a member too. */
+  isOperator: boolean;
+  /** Two-step sign-in (TOTP) is on. Required for admins and operators (H-3). */
+  mfa: boolean;
 }
+
+/** The name an authenticator app shows next to the code. rename.mjs rewrites it. */
+const TOTP_ISSUER = "template.dlab5";
 
 const AuthContext = React.createContext<Session | null>(null);
 
@@ -26,6 +42,15 @@ export function useSession(): Session {
   const session = React.useContext(AuthContext);
   if (!session) throw new Error("useSession used outside AuthGate");
   return session;
+}
+
+/**
+ * Group changes do not reach tokens already held (constraint 7). After
+ * creating a tenant or changing who is in a space, refresh and reload.
+ */
+export async function refreshGroups(): Promise<void> {
+  await fetchAuthSession({ forceRefresh: true });
+  window.location.reload();
 }
 
 async function readSession(): Promise<Session> {
@@ -42,23 +67,34 @@ async function readSession(): Promise<Session> {
 
   let groups: string[] = [];
   let email: string | undefined;
+  let locale: string | undefined;
   try {
     const session = await fetchAuthSession();
     const payload = session.tokens?.idToken?.payload ?? {};
     groups = (payload["cognito:groups"] as string[] | undefined) ?? [];
     email = payload.email as string | undefined;
+    locale = payload.locale as string | undefined;
   } catch (err) {
     console.warn("[app] could not read auth session claims", err);
   }
 
+  let mfa = false;
+  try {
+    mfa = ((await fetchMFAPreference()).enabled ?? []).includes("TOTP");
+  } catch (err) {
+    console.warn("[app] could not read the MFA preference", err);
+  }
+
   return {
     username: user.username,
+    mfa,
     email,
+    locale,
     groups,
-    isAdmin: groups.includes(ADMIN_GROUP),
-    workspaceSlugs: groups
-      .filter((g) => g.startsWith(GROUP_PREFIX) && g !== ADMIN_GROUP)
-      .map((g) => g.slice(GROUP_PREFIX.length)),
+    isAdmin: tenantsOf(groups).length > 0,
+    tenants: tenantsOf(groups),
+    isMember: isMember(groups),
+    isOperator: groups.includes(ADMIN_GROUP),
   };
 }
 
@@ -95,6 +131,7 @@ function PasswordField({
   autoComplete: string;
 }) {
   const [shown, setShown] = React.useState(false);
+  const { t } = useT();
 
   return (
     <label className="app-field app-field--password" htmlFor={id}>
@@ -113,8 +150,8 @@ function PasswordField({
           className="app-field__reveal"
           onClick={() => setShown((previous) => !previous)}
           aria-pressed={shown}
-          aria-label={shown ? "Hide password" : "Show password"}
-          title={shown ? "Hide password" : "Show password"}
+          aria-label={shown ? t("auth.hidepassword") : t("auth.showpassword")}
+          title={shown ? t("auth.hidepassword") : t("auth.showpassword")}
           tabIndex={-1}
         >
           {shown ? (
@@ -140,40 +177,72 @@ function PasswordField({
   );
 }
 
+type Step = "password" | "newpassword" | "totp" | "totpsetup";
+
 function SignInForm({ onSignedIn }: { onSignedIn: () => Promise<void> }) {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [newPassword, setNewPassword] = React.useState("");
-  const [needsNewPassword, setNeedsNewPassword] = React.useState(false);
+  const [code, setCode] = React.useState("");
+  const [step, setStep] = React.useState<Step>("password");
+  const [setup, setSetup] = React.useState<{ uri: string; secret: string } | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
+  const { t } = useT();
 
-  async function submit(event: React.FormEvent) {
-    event.preventDefault();
+  /*
+   * Cognito answers each step with the next one. Accounts are created by an
+   * admin with a temporary password, so the new-password step is the NORMAL
+   * first login; with two-step sign-in on, a code follows (or, the first
+   * time an account must have it, its setup). Every branch matters: one left
+   * out makes that sign-in fail silently.
+   */
+  async function next(res: SignInOutput) {
+    const s = res.nextStep?.signInStep;
+    if (s === "CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED") { setStep("newpassword"); setBusy(false); return; }
+    if (s === "CONFIRM_SIGN_IN_WITH_TOTP_CODE") { setCode(""); setStep("totp"); setBusy(false); return; }
+    if (s === "CONTINUE_SIGN_IN_WITH_TOTP_SETUP") {
+      const d = (res.nextStep as { totpSetupDetails: { sharedSecret: string; getSetupUri: (a: string, b?: string) => URL } }).totpSetupDetails;
+      setSetup({ uri: d.getSetupUri(TOTP_ISSUER, email).toString(), secret: d.sharedSecret });
+      setStep("totpsetup"); setBusy(false); return;
+    }
+    if (s === "CONTINUE_SIGN_IN_WITH_MFA_SELECTION" || s === "CONTINUE_SIGN_IN_WITH_MFA_SETUP_SELECTION") {
+      // only TOTP is enabled in the pool: choose it
+      return next(await confirmSignIn({ challengeResponse: "TOTP" }));
+    }
+    if (s && s !== "DONE") throw new Error(t("auth.unsupportedstep", { step: s }));
+    await onSignedIn();
+  }
+
+  async function run(fn: () => Promise<SignInOutput>) {
     setBusy(true);
     setError(null);
     try {
-      if (needsNewPassword) {
-        await confirmSignIn({ challengeResponse: newPassword });
-      } else {
-        const res = await signIn({ username: email, password });
-        // Accounts are created by an admin with a temporary password, so this
-        // challenge is the NORMAL first-login path, not an edge case. Leaving
-        // it out makes every new user's first sign-in fail silently.
-        if (
-          res.nextStep?.signInStep ===
-          "CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED"
-        ) {
-          setNeedsNewPassword(true);
-          setBusy(false);
-          return;
-        }
-      }
-      await onSignedIn();
+      await next(await fn());
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setBusy(false);
     }
+  }
+
+  function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (step === "newpassword") void run(() => confirmSignIn({ challengeResponse: newPassword }));
+    else if (step === "totp") void run(() => confirmSignIn({ challengeResponse: code.replace(/\s/g, "") }));
+    else void run(() => signIn({ username: email, password }));
+  }
+
+  if (step === "totpsetup" && setup) {
+    return (
+      <GuestLanding>
+        <div className="app-gate__card">
+          <h2 className="app-gate__title">{t("mfa.title")}</h2>
+          <p className="app-gate__subtitle">{t("mfa.required")}</p>
+          <TotpEnroll uri={setup.uri} secret={setup.secret} busy={busy} error={error}
+            onCode={(c) => void run(() => confirmSignIn({ challengeResponse: c }))} />
+        </div>
+      </GuestLanding>
+    );
   }
 
   return (
@@ -181,25 +250,29 @@ function SignInForm({ onSignedIn }: { onSignedIn: () => Promise<void> }) {
       <form className="app-gate__card" onSubmit={submit}>
         {/* h2, not h1: GuestLanding owns the page heading. A second h1 would
             leave the page with no single subject. */}
-        <h2 className="app-gate__title">Sign in</h2>
+        <h2 className="app-gate__title">{t("auth.signin")}</h2>
         <p className="app-gate__subtitle">
-          {needsNewPassword
-            ? "Choose a new password to finish setting up your account."
-            : "Sign in to continue."}
+          {step === "newpassword" ? t("auth.subtitle.newpassword") : step === "totp" ? t("auth.subtitle.totp") : t("auth.subtitle")}
         </p>
 
-        {needsNewPassword ? (
+        {step === "newpassword" ? (
           <PasswordField
             id="app-new-password"
-            label="New password"
+            label={t("auth.newpassword")}
             autoComplete="new-password"
             value={newPassword}
             onChange={setNewPassword}
           />
+        ) : step === "totp" ? (
+          <label className="app-field">
+            <span>{t("mfa.code")}</span>
+            <input inputMode="numeric" autoComplete="one-time-code" pattern="[0-9 ]{6,8}" value={code}
+              onChange={(e) => setCode(e.target.value)} required autoFocus />
+          </label>
         ) : (
           <>
             <label className="app-field">
-              <span>Email</span>
+              <span>{t("auth.email")}</span>
               <input
                 type="email"
                 autoComplete="username"
@@ -210,7 +283,7 @@ function SignInForm({ onSignedIn }: { onSignedIn: () => Promise<void> }) {
             </label>
             <PasswordField
               id="app-password"
-              label="Password"
+              label={t("auth.password")}
               autoComplete="current-password"
               value={password}
               onChange={setPassword}
@@ -225,18 +298,34 @@ function SignInForm({ onSignedIn }: { onSignedIn: () => Promise<void> }) {
         )}
 
         <button className="app-button" type="submit" disabled={busy}>
-          {busy ? "Signing in…" : needsNewPassword ? "Set password" : "Sign in"}
+          {busy ? t("auth.signingin") : step === "newpassword" ? t("auth.setpassword") : step === "totp" ? t("auth.confirmcode") : t("auth.signin")}
         </button>
       </form>
     </GuestLanding>
   );
 }
 
+/** Admins and operators turn on two-step sign-in before anything else (H-3). */
+function MfaRequired({ session, onDone }: { session: Session; onDone: () => void }) {
+  const { t } = useT();
+  return (
+    <GuestLanding>
+      <div className="app-gate__card">
+        <h2 className="app-gate__title">{t("mfa.title")}</h2>
+        <p className="app-gate__subtitle">{t("mfa.required")}</p>
+        <MfaSetup email={session.email} onDone={onDone} />
+        <button type="button" className="app-linkbutton" onClick={() => void signOutAndReload()}>{t("nav.signout")}</button>
+      </div>
+    </GuestLanding>
+  );
+}
+
 function Unconfigured() {
+  const { t } = useT();
   return (
     <main className="app-gate">
       <div className="app-gate__card">
-        <h1 className="app-gate__title">Backend not configured</h1>
+        <h1 className="app-gate__title">{t("auth.unconfigured")}</h1>
         <p className="app-gate__subtitle">
           This build has no <code>amplify_outputs.json</code>. Run{" "}
           <code>npm run backend:sandbox</code> then{" "}
@@ -264,6 +353,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => setMounted(true), []);
+  // the language saved on the account, unless this browser chose one (lib/i18n)
+  useAccountLang(session?.locale);
 
   const refresh = React.useCallback(async () => {
     try {
@@ -300,6 +391,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   if (state === "loading") return <main className="app-gate" aria-busy="true" />;
 
   if (state === "out" || !session) return <SignInForm onSignedIn={refresh} />;
+
+  if ((session.isAdmin || session.isOperator) && !session.mfa) {
+    return <MfaRequired session={session} onDone={() => void refresh()} />;
+  }
 
   return <AuthContext.Provider value={session}>{children}</AuthContext.Provider>;
 }

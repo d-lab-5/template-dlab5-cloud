@@ -1,15 +1,25 @@
-# D-LAB-5 fullstack template
+# D-LAB-5 cloud template
 
-A runnable skeleton for a D-LAB-5 web application: **Gatsby 5 / React 18** in
-front, an **AWS Amplify Gen 2** backend behind, and one Cognito gate over the
-whole thing. Fork it, rename it, and start on the part that is actually yours.
+A runnable skeleton for the **cloud** half of a D-LAB-5 cloud-and-edge product:
+**Gatsby 5 / React 18** in front, an **AWS Amplify Gen 2** backend behind, one
+Cognito gate over the whole thing, **tenants with spaces**, and an API that
+**edges** link to. Fork it, rename it, and start on the part that is actually
+yours.
+
+The edge half — the local app a person, a home server or a robot runs — is
+[`template-dlab5-edge`](https://github.com/d-lab-5/template-dlab5-edge). The
+patterns both implement are an ArchiMate blueprint,
+[`cloud-edge-platform.ttl`](https://github.com/d-lab-5/blueprinting-dlab5-net/blob/stage/docs/patterns/cloud-edge-platform.ttl)
+in blueprinting-dlab5-net, with the Mediathek and DigitalHome.Cloud as its two
+instances. (This repository was `template-dlab5-net`; GitHub redirects the old
+name.)
 
 It is deliberately not a product. What it carries is the shape — and the dozen
 constraints that shape has already cost someone a day each to discover,
 recorded in [`docs/adr/`](docs/adr/).
 
 Working guidance for Claude Code lives outside the repository, as the
-`dlab5-fullstack-template` skill, so it follows you into every fork instead of
+`dlab5-cloud-template` skill, so it follows you into every fork instead of
 being copied once and left to drift. `CLAUDE.md` is git-ignored here: keep a
 local one if you want, it will not be committed.
 
@@ -18,12 +28,14 @@ local one if you want, it will not be committed.
 | | |
 |---|---|
 | **Auth** | Cognito user pool, no guest tier, no self-signup, admin-created accounts with the new-password challenge handled. One gate at the root, so a new page cannot be unprotected. |
-| **Data** | One `Workspace` model, group-scoped. DynamoDB holds the pointer row; the content is an object in S3. |
+| **Tenancy** | `Tenant` and `Space`, each a Cognito group named like its minted id (`t-…` admins, `s-…` readers), created by one function together with its rows. Operators create tenants and read no content. Two-step sign-in for admins and operators. ADR-0005. |
+| **Data** | A space's content is an object in S3 behind the proxy; what a tenant knows is an RDF A-Box per space, validated against SHACL shapes (`packages/ontology`) and versioned. ADR-0004, ADR-0007. |
+| **Edges** | The RFC 8628 device flow of DigitalHome's edges: an edge shows a code, a tenant admin approves it on `/link`, the edge gets a revocable token for that tenant. A version gate (426), A-Box sync, model downloads, and installers offered from Settings. ADR-0006, [`docs/specs/edge-cloud-api.md`](docs/specs/edge-cloud-api.md). |
 | **Storage** | An `objectProxy` Lambda that is the real authorization boundary, hands back presigned GETs, and enforces an `If-Match` precondition on every write. |
-| **Frontend** | One shell component, a collapsible rail with a placeholder menu, a light/dark theme with no flash on load, and a token palette defined in both themes. |
+| **Frontend** | One shell component, a collapsible rail with a placeholder menu, a light/dark theme with no flash on load, a token palette defined in both themes, English/German/French (`packages/i18n`), security headers (`customHttp.yml`), and Settings for tenants, members, edges and two-step sign-in. |
 | **Build** | An `amplify.yml` whose comments encode why every line is the way it is. The build passes with no backend deployed. |
 | **Dev loop** | `npm run demo` — a guided menu that checks the environment, deploys a sandbox, makes a demo user and starts the dev server. `npm run dev` is the same without the menu. |
-| **Tests** | `node --test` over `packages/core`, plus `verify-auth.mjs` for the live sign-in path. |
+| **Tests** | `node --test` over `packages/core`, `packages/i18n` and `packages/ontology`; `tsx --test` over the backend functions (version gate, token expiry, tenant codes, A-Box validation); `verify-auth.mjs` for the live sign-in path. |
 
 ## Getting started
 
@@ -72,7 +84,9 @@ build passing in that state is a property worth keeping — a frontend-only
 rebuild must never fail the branch.
 
 Once the backend is up, create a user in the Cognito console and add them to
-`app-admins`. There is no sign-up: the landing page is the sign-in page.
+`app-admins` (the demo user already is). There is no sign-up: the landing page
+is the sign-in page. An operator sets up two-step sign-in on first sign-in,
+then creates the first tenant in Settings → Operator, naming its first admin.
 
 ### Which AWS account?
 
@@ -90,7 +104,7 @@ you look before it creates anything:
   account     123456789012
   region      eu-central-1
   profile     default
-  sandbox     frankuwe
+  sandbox     your-username
 ```
 
 Use a different one with `npm run dev -- --profile work`, and run a second
@@ -109,12 +123,15 @@ npm --prefix backend run sandbox:delete
 
 ```bash
 node scripts/rename.mjs --name "Fleet" --slug fleet --prefix fl \
-  --domain fleet.dlab5.net --repo d-lab-5/fleet-dlab5-net --dry-run
+  --domain fleet.dlab5.net --repo d-lab-5/fleet-dlab5-cloud \
+  --tenant Household --space Vault --dry-run
 ```
 
 The script rewrites the CSS prefix, the design tokens, the Cognito group names,
 the theme attribute and storage key, the package names, the domain and the
-titles — all of which have to move together. Drop `--dry-run`, then reinstall,
+titles — all of which have to move together — and, with `--tenant`/`--space`,
+the English interface nouns (the models and ids stay `Tenant`/`Space`,
+`t-`/`s-`; German and French are yours to adjust). Drop `--dry-run`, then reinstall,
 because the workspace package names changed:
 
 ```bash
@@ -124,17 +141,18 @@ npm install && npm --prefix backend install && npm test && npm run build
 
 What is placeholder and expected to go: the five stub views in
 `packages/site/src/pages/w.tsx`, the menu arrays in `Shell.tsx`, the hero copy
-in `GuestLanding.tsx`, the `Workspace` model, and this README.
+in `GuestLanding.tsx`, the placeholder ontology in `packages/ontology`, and
+this README.
 
 What should survive untouched, because it is the point of the template:
 `AuthGate`, `lib/amplify.ts`, `useTheme`, `gatsby-ssr.tsx`, `gatsby-node.ts`,
-`amplify.yml`, the `objectProxy` Lambda, the hardening in `backend.ts`,
-`tokens.css`, and the three `scripts/`.
+`amplify.yml`, the `objectProxy` Lambda, the hardening in `backend.ts`, the
+`tenants` and edge functions, `tokens.css`, and the `scripts/`.
 
 ## Stack
 
 Gatsby 5 · React 18 · TypeScript · AWS Amplify Gen 2 · Cognito · AppSync ·
-DynamoDB · S3 · npm workspaces · Node 22.
+DynamoDB · S3 · API Gateway (HTTP) · RDF/SHACL · npm workspaces · Node 22.
 
 ## Licence
 

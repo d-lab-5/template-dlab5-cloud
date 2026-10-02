@@ -25,9 +25,12 @@
  *
  * What it does NOT do, deliberately:
  *
- *   - Rename `Workspace`. That is a domain noun and only you know what yours
- *     is called. Renaming it mechanically would touch the DynamoDB model, the
- *     GraphQL API and the /w/ route, and half of those are decisions.
+ *   - Rename the `Tenant` and `Space` MODELS, their `t-`/`s-` ids or groups.
+ *     Products keep those, so their code stays comparable with the
+ *     template's and a fix can travel between them. What a person reads is
+ *     another matter: --tenant and --space rewrite the English interface
+ *     nouns (packages/i18n/en.json), e.g. --tenant Household --space Vault.
+ *     German and French need a person: the tool says so.
  *   - Touch docs/adr/. Those record decisions this project made; a fork
  *     inherits them and should edit them by reading them.
  *   - Delete the placeholder screens. Deleting is your job, and it is the
@@ -108,8 +111,8 @@ function fail(message) {
 if (!args.name || !args.slug || !args.prefix) {
   fail(
     "usage: node scripts/rename.mjs --name \"Fleet\" --slug fleet " +
-      "--prefix fl [--domain fleet.dlab5.net] [--repo d-lab-5/fleet-dlab5-net] " +
-      "[--dry-run]"
+      "--prefix fl [--domain fleet.dlab5.net] [--repo d-lab-5/fleet-dlab5-cloud] " +
+      "[--tenant Household] [--space Vault] [--dry-run]"
   );
 }
 
@@ -253,6 +256,42 @@ for (const file of files(ROOT)) {
   if (!args.dryRun) writeFileSync(file, after);
 }
 
+/* -- the interface nouns (--tenant, --space) -------------------------------- */
+
+/*
+ * Whole words only, in the English catalog's TEXTS (never its keys), keeping
+ * case and plural: tenant → household, Tenants → Households. A noun given in
+ * the singular gets an "s" for the plural; one that does not take an "s"
+ * (Family → Families) needs a look afterwards, which the summary asks for.
+ */
+function nounRules(from, to) {
+  if (!to) return [];
+  if (!/^[A-Za-z][A-Za-z -]*$/.test(to)) fail(`--${from} must be a word, got "${to}"`);
+  const lower = to.toLowerCase();
+  const cap = lower[0].toUpperCase() + lower.slice(1);
+  return [
+    [new RegExp(`\\b${from}s\\b`, "g"), `${lower}s`],
+    [new RegExp(`\\b${from[0].toUpperCase()}${from.slice(1)}s\\b`, "g"), `${cap}s`],
+    [new RegExp(`\\b${from}\\b`, "g"), lower],
+    [new RegExp(`\\b${from[0].toUpperCase()}${from.slice(1)}\\b`, "g"), cap],
+  ];
+}
+const NOUNS = [...nounRules("tenant", args.tenant), ...nounRules("space", args.space)];
+if (NOUNS.length) {
+  const catalog = join(ROOT, "packages/i18n/en.json");
+  const texts = JSON.parse(readFileSync(catalog, "utf8"));
+  let nouns = 0;
+  for (const [key, text] of Object.entries(texts)) {
+    let out = text;
+    for (const [re, to] of NOUNS) out = out.replace(re, to);
+    if (out !== text) { texts[key] = out; nouns += 1; }
+  }
+  console.log(`  packages/i18n/en.json  (${nouns} text${nouns === 1 ? "" : "s"}: the interface nouns)`);
+  if (!args.dryRun) writeFileSync(catalog, JSON.stringify(texts, null, 2) + "\n");
+  touched += nouns ? 1 : 0;
+  changed += nouns;
+}
+
 console.log(
   `\n  ${args.dryRun ? "Would change" : "Changed"} ${changed} lines in ` +
     `${touched} files.\n`
@@ -275,5 +314,10 @@ if (!args.dryRun && touched > 0) {
     - packages/site/src/pages/w.tsx — the VIEWS list and the placeholders.
     - packages/site/src/components/GuestLanding.tsx — the hero copy and <Art/>.
     - docs/adr/ — read them, keep what still holds, add your own.
+    - packages/ontology/ — the placeholder T-Box: replace it with your domain,
+      then node backend/scripts/sync-ontology.mjs.${NOUNS.length ? `
+    - packages/i18n/de.json and fr.json — the English nouns changed; say the
+      same in German and French (Mandant/Bereich, organisation/espace today).
+      And read en.json once: a plural that does not take an "s" needs a hand.` : ""}
 `);
 }

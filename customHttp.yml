@@ -1,0 +1,40 @@
+# Security headers for every page of the site (Amplify Hosting reads this file
+# from the repository root).
+#
+# The CSP allows what the site really talks to and nothing else:
+#   connect-src  AppSync (GraphQL, and its realtime socket) and Cognito, in
+#                eu-central-1; S3 for a space's object (presigned GET) and the
+#                edge release downloads
+#   img-src      data: and blob: (the two-step sign-in QR code is inline SVG)
+#   script-src   'unsafe-inline' because Gatsby inlines its chunk map and the
+#                page-data loader; no script from another host is allowed
+#   style-src    'unsafe-inline' because Gatsby inlines the critical CSS
+# A new endpoint (another region, a CDN for media, a font host) needs a line
+# here, or the browser blocks it: the console names the directive. Another
+# region means changing every eu-central-1 below.
+customHeaders:
+  - pattern: "**"
+    headers:
+      - key: Strict-Transport-Security
+        value: max-age=31536000; includeSubDomains
+      - key: X-Content-Type-Options
+        value: nosniff
+      - key: X-Frame-Options
+        value: DENY
+      - key: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - key: Permissions-Policy
+        value: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+      - key: Content-Security-Policy
+        value: >-
+          default-src 'self';
+          script-src 'self' 'unsafe-inline';
+          style-src 'self' 'unsafe-inline';
+          img-src 'self' data: blob:;
+          font-src 'self' data:;
+          connect-src 'self' https://*.appsync-api.eu-central-1.amazonaws.com wss://*.appsync-realtime-api.eu-central-1.amazonaws.com https://cognito-idp.eu-central-1.amazonaws.com https://cognito-identity.eu-central-1.amazonaws.com https://*.s3.eu-central-1.amazonaws.com;
+          frame-ancestors 'none';
+          base-uri 'self';
+          form-action 'self';
+          object-src 'none';
+          upgrade-insecure-requests
