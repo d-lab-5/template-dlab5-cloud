@@ -1,4 +1,4 @@
-// The edge side of A-Box sync (phase 3a). An edge reads a graph with its
+// The edge side of A-Box sync, and /tenant (which tenant and spaces this edge serves). An edge reads a graph with its
 // version, merges locally statement by statement against the version it
 // last synced, and writes back naming the version it read. If someone saved
 // meanwhile, it gets 409 and the current document, and merges again.
@@ -6,7 +6,7 @@ import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from "aws-lambda
 import { extractBearer, json, parseJsonBody, versionGate } from "../edge-shared/http";
 import { verifyDeviceToken } from "../edge-shared/registry";
 import { BadGraphRequest, getGraph, listGraphs, saveGraph } from "../graph-shared/store";
-import { getSpace } from "../shared/spaces";
+import { getSpace, getTenant, spacesOfTenant } from "../shared/spaces";
 
 export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> => {
   const tooOld = versionGate(event);
@@ -20,6 +20,14 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
   const tenant = verified.row.tenant_id;
   if (!tenant) return json(403, { error: "no_tenant", message: "this edge belongs to no tenant yet; link it again" });
   try {
+    if (event.rawPath.endsWith("/tenant")) {
+      // the tenant this edge was linked to, and its spaces: what an edge
+      // shows and matches its local A-Boxes against (by name: ids differ
+      // between sites)
+      const t = await getTenant(tenant);
+      const spaces = (await spacesOfTenant(tenant)).map(({ id, name, kind }) => ({ id, name, kind }));
+      return json(200, { tenant: t ? { id: t.id, name: t.name } : { id: tenant, name: tenant }, spaces });
+    }
     if (event.rawPath.endsWith("/graphs/list")) return json(200, { graphs: await listGraphs(tenant) });
     const space = await getSpace(String(body.name || ""));
     if (!space || space.tenantId !== tenant) return json(404, { error: "not_found", message: "no such space in this tenant" });

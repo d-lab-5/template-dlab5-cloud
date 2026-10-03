@@ -45,6 +45,7 @@ An operator cannot link an edge into a tenant.
 
 | Route | Body | Answer |
 |---|---|---|
+| `tenant` | `{}` | `{tenant: {id, name}, spaces: [{id, name, kind}]}` — the tenant the edge was linked to; an edge matches spaces by **name**, because ids differ between sites |
 | `graphs/list` | `{}` | `{graphs: [{name, version, triples, updatedAt, updatedBy}]}` — one per space of the tenant |
 | `graphs/get` | `{name}` (a space id) | `{name, version, ttl}`; version 0 and empty Turtle when there is none yet |
 | `graphs/put` | `{name, ttl, baseVersion}` | 200 `{status: "ok", name, version, triples}`; **409** `{error: "version_conflict", current: {name, version, ttl, …}}` when someone saved since `baseVersion` (merge and put again); **422** `{error: "invalid", problems}` when the shapes refuse it; 404 `not_found` for a space outside the tenant |

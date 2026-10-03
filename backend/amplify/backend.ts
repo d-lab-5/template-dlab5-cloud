@@ -276,6 +276,7 @@ const routes: Array<[string, lambda.IFunction]> = [
   ["/edge/v1/token", backend.edgeToken.resources.lambda],
   ["/edge/v1/token/rotate", backend.edgeTokenRotate.resources.lambda],
   ["/edge/v1/telemetry", backend.edgeTelemetry.resources.lambda],
+  ["/edge/v1/tenant", backend.edgeGraphs.resources.lambda],
   ["/edge/v1/graphs/list", backend.edgeGraphs.resources.lambda],
   ["/edge/v1/graphs/get", backend.edgeGraphs.resources.lambda],
   ["/edge/v1/graphs/put", backend.edgeGraphs.resources.lambda],
