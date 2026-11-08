@@ -164,9 +164,9 @@ packages/*/dist/
 # JetBrains
 .idea/
 
-# CLAUDE.md lives as the `dlab5-cloud-template` skill instead
-# (~/.claude/skills/dlab5-cloud-template/SKILL.md), so the guidance travels
-# with the person rather than being re-forked and left to drift in every copy.
+# CLAUDE.md lives as the `dlab5-cloud-template` skill instead (plugin/, loaded
+# from the d-lab-5 catalogue through .claude/settings.json), so the guidance
+# has one home rather than being re-forked and left to drift in every copy.
 # Keep a local CLAUDE.md if you like — it will not be committed.
 CLAUDE.md
 
