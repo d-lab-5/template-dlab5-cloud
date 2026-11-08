@@ -33,12 +33,14 @@
  *     German and French need a person: the tool says so.
  *   - Touch docs/adr/. Those record decisions this project made; a fork
  *     inherits them and should edit them by reading them.
+ *   - Keep plugin/. That is the template's skill, which the product loads
+ *     from the d-lab-5 catalogue instead; it is removed so it cannot drift.
  *   - Delete the placeholder screens. Deleting is your job, and it is the
  *     part where you decide what the app actually is.
  */
 
 import { execFileSync } from "node:child_process";
-import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -71,7 +73,7 @@ const SKIP_FILES = new Set([
   "amplify_outputs.d.ts",
   "gatsby-types.d.ts",
 ]);
-const SKIP_PATH_PREFIXES = ["docs/adr/"];
+const SKIP_PATH_PREFIXES = ["docs/adr/", "plugin/"]; // plugin/ is removed below, not rewritten
 
 const TEXT_EXTENSIONS = new Set([
   ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs",
@@ -290,6 +292,15 @@ if (NOUNS.length) {
   if (!args.dryRun) writeFileSync(catalog, JSON.stringify(texts, null, 2) + "\n");
   touched += nouns ? 1 : 0;
   changed += nouns;
+}
+
+// plugin/ is the template's own skill, published through the d-lab-5
+// catalogue (d-lab-5/agent-skills). A product loads it from there, through
+// .claude/settings.json, so a fork must not keep a copy that would drift.
+if (existsSync(join(ROOT, "plugin"))) {
+  console.log("  plugin/  (removed: the template's skill; load dlab5-cloud-template@d-lab-5 instead)");
+  if (!args.dryRun) rmSync(join(ROOT, "plugin"), { recursive: true, force: true });
+  touched += 1;
 }
 
 console.log(
