@@ -8,22 +8,22 @@
 export {
   mintId,
   isMintedId,
-  mintWorkspaceId,
-  WORKSPACE_ID_PREFIX,
+  mintTenantId,
+  mintSpaceId,
+  TENANT_ID_PREFIX,
+  SPACE_ID_PREFIX,
 } from "./identity.js";
 
 export {
   ADMIN_GROUP,
-  GROUP_PREFIX,
-  LOCK_STALE_AFTER_MS,
-  groupForWorkspace,
-  isLockLive,
-  objectKeyForWorkspace,
+  SPACE_ID,
+  TENANT_ID,
+  isMember,
+  objectKeyForSpace,
+  spacesOf,
+  tenantCode,
+  tenantsOf,
 } from "./types.js";
-export type { Workspace } from "./types.js";
+export type { DeviceCodeInfo, EdgeSummary, Space, Tenant } from "./types.js";
 
-export {
-  assertWorkspace,
-  isWorkspace,
-  workspaceProblems,
-} from "./validate.js";
+export { assertSpace, isSpace, spaceProblems } from "./validate.js";

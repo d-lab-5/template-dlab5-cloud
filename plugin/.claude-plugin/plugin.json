@@ -1,0 +1,11 @@
+{
+  "name": "dlab5-cloud-template",
+  "version": "1.0.0",
+  "description": "The cloud template's own skill: working in template-dlab5-cloud and in every product made from it.",
+  "author": {
+    "name": "D-LAB-5"
+  },
+  "homepage": "https://github.com/d-lab-5/template-dlab5-cloud",
+  "repository": "https://github.com/d-lab-5/template-dlab5-cloud",
+  "license": "GPL-3.0-or-later"
+}

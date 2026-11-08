@@ -6,7 +6,7 @@ const NotFoundPage: React.FC<PageProps> = () => (
   <Shell>
     <h1>Not found</h1>
     <p>
-      <a href="/">Back to workspaces</a>
+      <a href="/">Back to spaces</a>
     </p>
   </Shell>
 );

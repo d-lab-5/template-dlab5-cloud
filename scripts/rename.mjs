@@ -21,21 +21,26 @@
  *   template.dlab5.net → <domain>
  *   template.dlab5     → <name lowercased>.dlab5    the brand in the rail
  *   D-LAB-5 Template   → <name>                     titles and metadata
- *   d-lab-5/template-dlab5-net → <repo>             the Source link
+ *   d-lab-5/template-dlab5-cloud → <repo>             the Source link
  *
  * What it does NOT do, deliberately:
  *
- *   - Rename `Workspace`. That is a domain noun and only you know what yours
- *     is called. Renaming it mechanically would touch the DynamoDB model, the
- *     GraphQL API and the /w/ route, and half of those are decisions.
+ *   - Rename the `Tenant` and `Space` MODELS, their `t-`/`s-` ids or groups.
+ *     Products keep those, so their code stays comparable with the
+ *     template's and a fix can travel between them. What a person reads is
+ *     another matter: --tenant and --space rewrite the English interface
+ *     nouns (packages/i18n/en.json), e.g. --tenant Household --space Vault.
+ *     German and French need a person: the tool says so.
  *   - Touch docs/adr/. Those record decisions this project made; a fork
  *     inherits them and should edit them by reading them.
+ *   - Keep plugin/. That is the template's skill, which the product loads
+ *     from the d-lab-5 catalogue instead; it is removed so it cannot drift.
  *   - Delete the placeholder screens. Deleting is your job, and it is the
  *     part where you decide what the app actually is.
  */
 
 import { execFileSync } from "node:child_process";
-import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -68,7 +73,7 @@ const SKIP_FILES = new Set([
   "amplify_outputs.d.ts",
   "gatsby-types.d.ts",
 ]);
-const SKIP_PATH_PREFIXES = ["docs/adr/"];
+const SKIP_PATH_PREFIXES = ["docs/adr/", "plugin/"]; // plugin/ is removed below, not rewritten
 
 const TEXT_EXTENSIONS = new Set([
   ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs",
@@ -108,8 +113,8 @@ function fail(message) {
 if (!args.name || !args.slug || !args.prefix) {
   fail(
     "usage: node scripts/rename.mjs --name \"Fleet\" --slug fleet " +
-      "--prefix fl [--domain fleet.dlab5.net] [--repo d-lab-5/fleet-dlab5-net] " +
-      "[--dry-run]"
+      "--prefix fl [--domain fleet.dlab5.net] [--repo d-lab-5/fleet-dlab5-cloud] " +
+      "[--tenant Household] [--space Vault] [--dry-run]"
   );
 }
 
@@ -126,7 +131,7 @@ if (args.prefix === "app") {
 }
 
 const domain = args.domain || `${args.slug}.dlab5.net`;
-const repo = args.repo || `d-lab-5/${args.slug}-dlab5-net`;
+const repo = args.repo || `d-lab-5/${args.slug}-dlab5-cloud`;
 const brand = args.slug;
 
 /* -- a clean tree ---------------------------------------------------------- */
@@ -164,8 +169,8 @@ if (!args.dryRun) {
  * `@dlab5/app-core` is not half-rewritten by the bare `app-` rule below it.
  */
 const RULES = [
-  ["d-lab-5/template-dlab5-net", repo],
-  ["template-dlab5-net", `${args.slug}-dlab5-net`],
+  ["d-lab-5/template-dlab5-cloud", repo],
+  ["template-dlab5-cloud", repo.split("/").pop()],
   ["template.dlab5.net", domain],
   ["template.dlab5", `${brand}.dlab5`],
   ["@dlab5/app-", `@dlab5/${args.slug}-`],
@@ -253,6 +258,51 @@ for (const file of files(ROOT)) {
   if (!args.dryRun) writeFileSync(file, after);
 }
 
+/* -- the interface nouns (--tenant, --space) -------------------------------- */
+
+/*
+ * Whole words only, in the English catalog's TEXTS (never its keys), keeping
+ * case and plural: tenant → household, Tenants → Households. A noun given in
+ * the singular gets an "s" for the plural; one that does not take an "s"
+ * (Family → Families) needs a look afterwards, which the summary asks for.
+ */
+function nounRules(from, to) {
+  if (!to) return [];
+  if (!/^[A-Za-z][A-Za-z -]*$/.test(to)) fail(`--${from} must be a word, got "${to}"`);
+  const lower = to.toLowerCase();
+  const cap = lower[0].toUpperCase() + lower.slice(1);
+  return [
+    [new RegExp(`\\b${from}s\\b`, "g"), `${lower}s`],
+    [new RegExp(`\\b${from[0].toUpperCase()}${from.slice(1)}s\\b`, "g"), `${cap}s`],
+    [new RegExp(`\\b${from}\\b`, "g"), lower],
+    [new RegExp(`\\b${from[0].toUpperCase()}${from.slice(1)}\\b`, "g"), cap],
+  ];
+}
+const NOUNS = [...nounRules("tenant", args.tenant), ...nounRules("space", args.space)];
+if (NOUNS.length) {
+  const catalog = join(ROOT, "packages/i18n/en.json");
+  const texts = JSON.parse(readFileSync(catalog, "utf8"));
+  let nouns = 0;
+  for (const [key, text] of Object.entries(texts)) {
+    let out = text;
+    for (const [re, to] of NOUNS) out = out.replace(re, to);
+    if (out !== text) { texts[key] = out; nouns += 1; }
+  }
+  console.log(`  packages/i18n/en.json  (${nouns} text${nouns === 1 ? "" : "s"}: the interface nouns)`);
+  if (!args.dryRun) writeFileSync(catalog, JSON.stringify(texts, null, 2) + "\n");
+  touched += nouns ? 1 : 0;
+  changed += nouns;
+}
+
+// plugin/ is the template's own skill, published through the d-lab-5
+// catalogue (d-lab-5/agent-skills). A product loads it from there, through
+// .claude/settings.json, so a fork must not keep a copy that would drift.
+if (existsSync(join(ROOT, "plugin"))) {
+  console.log("  plugin/  (removed: the template's skill; load dlab5-cloud-template@d-lab-5 instead)");
+  if (!args.dryRun) rmSync(join(ROOT, "plugin"), { recursive: true, force: true });
+  touched += 1;
+}
+
 console.log(
   `\n  ${args.dryRun ? "Would change" : "Changed"} ${changed} lines in ` +
     `${touched} files.\n`
@@ -275,5 +325,10 @@ if (!args.dryRun && touched > 0) {
     - packages/site/src/pages/w.tsx — the VIEWS list and the placeholders.
     - packages/site/src/components/GuestLanding.tsx — the hero copy and <Art/>.
     - docs/adr/ — read them, keep what still holds, add your own.
+    - packages/ontology/ — the placeholder T-Box: replace it with your domain,
+      then node backend/scripts/sync-ontology.mjs.${NOUNS.length ? `
+    - packages/i18n/de.json and fr.json — the English nouns changed; say the
+      same in German and French (Mandant/Bereich, organisation/espace today).
+      And read en.json once: a plural that does not take an "s" needs a hand.` : ""}
 `);
 }

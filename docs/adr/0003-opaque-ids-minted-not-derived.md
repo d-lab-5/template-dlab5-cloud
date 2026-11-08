@@ -2,6 +2,8 @@
 
 Status: **Accepted** · Date: 2026-08-28
 
+> **Amended by ADR-0005.** The Workspace became Tenant and Space. The rule stands unchanged; the ids are now `t-…` and `s-…` (`mintTenantId()`, `mintSpaceId()`), the groups are named exactly like them, and a space's object lives under `spaces/<id>/`.
+
 ## Context
 
 A workspace needs an identifier. The tempting choice is to slugify its name:

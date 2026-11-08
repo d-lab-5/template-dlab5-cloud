@@ -1,8 +1,8 @@
 {
-  "name": "template-dlab5-net",
+  "name": "template-dlab5-cloud",
   "private": true,
-  "description": "D-LAB-5 fullstack template \u2014 Gatsby 5 frontend, Amplify Gen 2 backend, one Cognito gate",
-  "license": "MIT",
+  "description": "D-LAB-5 fullstack template — Gatsby 5 frontend, Amplify Gen 2 backend, one Cognito gate",
+  "license": "GPL-3.0-or-later",
   "workspaces": [
     "packages/*"
   ],
@@ -21,7 +21,9 @@
     "backend:sync-outputs": "npm --prefix backend run sync-outputs",
     "backend:typecheck": "npm --prefix backend run typecheck",
     "verify:auth": "node scripts/verify-auth.mjs",
-    "rename": "node scripts/rename.mjs"
+    "rename": "node scripts/rename.mjs",
+    "check:gpl": "node scripts/check-gpl-compatibility.mjs",
+    "verify:edge": "node scripts/verify-edge.mjs"
   },
   "engines": {
     "node": ">=22"

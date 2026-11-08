@@ -344,9 +344,9 @@ def ensure_demo_user(profile):
     print(f"    password  {bold(DEMO_PASSWORD)}\n")
     para(
         dim(
-            "An admin, so it sees every workspace. Creating a workspace in the UI\n"
-            "writes the row but NOT its app-<slug> Cognito group — that is a\n"
-            "deliberate gap in the template; see backend/amplify/backend.ts."
+            "An operator (app-admins). On first sign-in it must set up two-step\n"
+            "sign-in (an authenticator app); then Settings → Operator creates a\n"
+            "tenant with this account as its first admin, and its shared space."
         )
     )
     return True

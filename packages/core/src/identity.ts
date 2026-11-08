@@ -1,14 +1,14 @@
 /**
  * Minting opaque ids.
  *
- * A workspace's id is minted, never derived from its name. Names change; ids
- * cannot, because the id is the DynamoDB partition key, and both the Cognito
- * group (`app-<id>`) and the S3 prefix (`workspaces/<id>/`) are computed from
- * it. Deriving an id from a name means a rename is a migration. ADR-0003.
+ * A tenant's or space's id is minted, never derived from its name. Names
+ * change; ids cannot, because the id is the DynamoDB partition key, and both
+ * the Cognito group (named like the id) and the S3 prefix (`spaces/<id>/`)
+ * are computed from it. Deriving an id from a name means a rename is a migration. ADR-0003.
  *
  * The alphabet excludes the characters that get misread when someone copies an
  * id out of a console by eye — 0/O, 1/l/I — so a support conversation about
- * "workspace w-g0hkm..." does not turn into a spelling exercise.
+ * "space s-g0hkm..." does not turn into a spelling exercise.
  */
 
 const ALPHABET = "23456789abcdefghjkmnpqrstuvwxyz";
@@ -45,7 +45,7 @@ function randomChars(length: number): string {
 }
 
 /**
- * `mintId("w")` → `"w-4k9mqhtx2p"`.
+ * `mintId("s")` → `"s-4k9mqhtx2p"`.
  *
  * The prefix says what kind of thing the id names, so a value read out of a
  * log or a URL identifies itself without its surrounding field name.
@@ -65,7 +65,9 @@ export function isMintedId(value: unknown, prefix: string): value is string {
   );
 }
 
-/** The prefix workspaces are minted with. */
-export const WORKSPACE_ID_PREFIX = "w";
+/** The prefixes tenants and spaces are minted with (their Cognito groups too). */
+export const TENANT_ID_PREFIX = "t";
+export const SPACE_ID_PREFIX = "s";
 
-export const mintWorkspaceId = (): string => mintId(WORKSPACE_ID_PREFIX);
+export const mintTenantId = (): string => mintId(TENANT_ID_PREFIX);
+export const mintSpaceId = (): string => mintId(SPACE_ID_PREFIX);

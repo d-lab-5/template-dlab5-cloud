@@ -1,6 +1,4 @@
 import type { AppSyncResolverEvent } from "aws-lambda";
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, GetCommand } from "@aws-sdk/lib-dynamodb";
 import {
   GetObjectCommand,
   HeadObjectCommand,
@@ -9,15 +7,16 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-import { ADMIN_GROUP, claimsOf } from "../shared/claims";
+import { claimsOf } from "../shared/claims";
+import { canRead, getSpace } from "../shared/spaces";
 
 /**
- * Per-workspace access to the object in S3.
+ * Per-space access to the space's object in S3 (ADR-0005).
  *
- * THIS IS THE SECURITY BOUNDARY for workspace content. The `defineStorage`
+ * THIS IS THE SECURITY BOUNDARY for space content. The `defineStorage`
  * rules are coarse, the AppSync `allow.authenticated()` rule only says the
  * caller is signed in, and the UI's checks are ergonomics. Everything that
- * decides whether *this* person may touch *this* workspace happens here.
+ * decides whether *this* person may touch *this* space happens here.
  *
  * Reads hand back a short-lived presigned GET, so the object never travels
  * through AppSync. Writes go through this function rather than a presigned
@@ -29,18 +28,17 @@ import { ADMIN_GROUP, claimsOf } from "../shared/claims";
 const URL_TTL_SECONDS = 300;
 
 // Constructed at module scope so the connection pool survives a warm
-// invocation. Neither client reads configuration; both take the execution
-// role and region from the Lambda environment.
+// invocation. It reads no configuration; it takes the execution role and
+// region from the Lambda environment. (The space row is read through
+// shared/spaces.ts, the one place that draws the access line.)
 const s3 = new S3Client({});
-const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 
 const BUCKET = process.env.OBJECT_BUCKET_NAME!;
-const WORKSPACE_TABLE = process.env.WORKSPACE_TABLE_NAME!;
 
 type Action = "read" | "write";
 
 interface Args {
-  slug: string;
+  spaceId: string;
   /** The object to store. Present on `write` only — the discriminator. */
   body?: string;
   /**
@@ -57,7 +55,7 @@ export interface ObjectAccessResult {
   url?: string;
   /** Current ETag, so a subsequent write can name what it is replacing. */
   etag?: string;
-  /** False when the workspace has no object yet — a legitimate empty state. */
+  /** False when the space has no object yet — a legitimate empty state. */
   exists: boolean;
   key: string;
 }
@@ -66,29 +64,20 @@ export interface ObjectAccessResult {
 class Refused extends Error {}
 
 /**
- * Resolves the workspace and confirms the caller may touch it.
+ * Resolves the space and confirms the caller may touch it: a reader of the
+ * space, or an admin of its tenant. Operators (app-admins) are NOT let in by
+ * being operators; tenant content is for the tenant (ADR-0005).
  *
- * Throws the SAME message whether the workspace is missing or merely
- * forbidden. Distinguishing them would let any signed-in user enumerate
- * workspace ids by watching which error comes back.
+ * Throws the SAME message whether the space is missing or merely forbidden.
+ * Distinguishing them would let any signed-in user enumerate space ids by
+ * watching which error comes back.
  */
-async function authorize(slug: string, identity: unknown) {
+async function authorize(spaceId: string, identity: unknown) {
   const { groups } = claimsOf(identity);
-
-  const { Item } = await ddb.send(
-    new GetCommand({ TableName: WORKSPACE_TABLE, Key: { slug } })
-  );
-
-  const denied = new Refused("No such workspace, or you cannot access it.");
-  if (!Item) throw denied;
-
-  const workspaceGroup = Item.group as string | undefined;
-  const permitted =
-    groups.includes(ADMIN_GROUP) ||
-    (workspaceGroup !== undefined && groups.includes(workspaceGroup));
-  if (!permitted) throw denied;
-
-  return { key: (Item.objectKey as string) || `workspaces/${slug}/data.json` };
+  const denied = new Refused("No such space, or you cannot access it.");
+  const space = await getSpace(spaceId);
+  if (!space || !canRead(groups, space)) throw denied;
+  return { key: `spaces/${space.id}/data.json` };
 }
 
 /**
@@ -98,7 +87,7 @@ async function authorize(slug: string, identity: unknown) {
  * backend.ts grants `s3:ListBucket` on the bucket in addition to the object
  * actions: without it S3 answers HeadObject on a missing key with 403
  * AccessDenied rather than 404, since it will not reveal whether an object
- * exists to a caller who cannot list. A brand-new workspace would then look
+ * exists to a caller who cannot list. A brand-new space would then look
  * exactly like a permissions failure.
  */
 async function head(key: string): Promise<string | undefined> {
@@ -121,7 +110,7 @@ async function head(key: string): Promise<string | undefined> {
 export const handler = async (
   event: AppSyncResolverEvent<Args> & { info?: { fieldName?: string } }
 ): Promise<ObjectAccessResult> => {
-  const { slug, body, etag, expectAbsent } = event.arguments;
+  const { spaceId, body, etag, expectAbsent } = event.arguments;
 
   /*
    * Which mutation this is, decided from the ARGUMENTS rather than from
@@ -143,7 +132,7 @@ export const handler = async (
   }
 
   try {
-    const { key } = await authorize(slug, event.identity);
+    const { key } = await authorize(spaceId, event.identity);
 
     if (action === "read") {
       const current = await head(key);
@@ -193,7 +182,7 @@ export const handler = async (
       .$metadata?.httpStatusCode;
     if (name === "PreconditionFailed" || status === 412 || status === 409) {
       throw new Error(
-        "Someone else saved this workspace while you were editing. Reload " +
+        "Someone else saved this space while you were editing. Reload " +
           "to pick up their changes, then save again."
       );
     }
@@ -201,6 +190,6 @@ export const handler = async (
     // Everything else is a bug or an outage. Log the detail, return a generic
     // message: an S3 or DynamoDB error text can name a bucket or a table.
     console.error("[objectProxy] unexpected failure", err);
-    throw new Error("The workspace store is unavailable. Try again.");
+    throw new Error("The space store is unavailable. Try again.");
   }
 };

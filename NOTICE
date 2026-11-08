@@ -1,0 +1,29 @@
+# Sources
+
+`template-dlab5-cloud` is **GPL-3.0-or-later**. See `LICENSE` for the terms and
+`COPYRIGHT` for the statement that goes with them.
+
+It was MIT until 2026-08-30. The change is deliberate and, for a template,
+consequential: **anything forked from this inherits GPL-3.0**. A project built
+on it must be free software too. That is the intent — if a particular piece of
+work needs a permissive licence, this is not its starting point.
+
+There were no outside contributors and no forks when the change was made, so
+nothing was relicensed on anyone else's behalf. Note that a licence change
+cannot reach backwards: anyone who received an earlier version under MIT keeps
+those rights for that version.
+
+## Included
+
+Nothing third-party is vendored into this repository.
+
+## Dependencies
+
+All production dependencies are under licences compatible with GPL-3.0: MIT,
+ISC, Apache-2.0, BSD-2-Clause, BSD-3-Clause, MPL-2.0, 0BSD, CC-BY-4.0 and
+CC0-1.0. Checked before the relicence with the compatibility scan in
+`blueprinting-dlab5-net` (`npm run check:gpl`).
+
+Four packages declare no SPDX identifier and were read by hand: `busboy` and
+`streamsearch` (MIT, Brian White), `linkfs` (public domain), and
+`xmlhttprequest-ssl` (MIT). None is GPL-incompatible.

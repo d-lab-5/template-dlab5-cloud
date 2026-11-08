@@ -1,8 +1,8 @@
 {
   "name": "@dlab5/app-core",
   "version": "0.1.0",
-  "license": "MIT",
-  "description": "Domain logic for the app. Pure TypeScript — no React, no AWS, no DOM.",
+  "license": "GPL-3.0-or-later",
+  "description": "Domain logic for the app. Pure TypeScript \u2014 no React, no AWS, no DOM.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

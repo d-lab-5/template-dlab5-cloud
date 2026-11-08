@@ -36,7 +36,13 @@ export function claimsOf(identity: unknown) {
   };
 }
 
+/** Operators: run the platform, create tenants, read no tenant content. */
 export const ADMIN_GROUP = "app-admins";
 
-/** The shape a workspace id may take. Minted ids match; so do older slugs. */
-export const SLUG = /^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$/;
+/** ADR-0005: a tenant's admins are the Cognito group named like its id … */
+export const TENANT = /^t-[23456789abcdefghjkmnpqrstuvwxyz]{10}$/;
+/** … and a space's readers the group named like the space's id. */
+export const SPACE = /^s-[23456789abcdefghjkmnpqrstuvwxyz]{10}$/;
+
+export const tenantsOf = (groups: string[]) => groups.filter((g) => TENANT.test(g));
+export const spacesOf = (groups: string[]) => groups.filter((g) => SPACE.test(g));

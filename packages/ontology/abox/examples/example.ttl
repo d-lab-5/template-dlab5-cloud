@@ -1,0 +1,11 @@
+@prefix app:    <https://template.dlab5.net/ontology#> .
+@prefix schema: <https://schema.org/> .
+
+# An example A-Box: fictional, like everything in this public repository.
+
+<https://template.dlab5.net/id/place/p-workshop> a app:Place ; schema:name "Workshop" .
+
+<https://template.dlab5.net/id/thing/t-printer> a app:Thing ;
+    schema:name "3D printer" ;
+    app:thingType app:Device ;
+    app:locatedIn <https://template.dlab5.net/id/place/p-workshop> .

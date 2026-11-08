@@ -1,0 +1,16 @@
+{
+  "name": "@dlab5/app-ontology",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The T-Box, SKOS concept schemes (EN master, DE, FR) and SHACL shapes each space's A-Box is checked against",
+  "type": "module",
+  "files": ["tbox", "shapes"],
+  "scripts": {
+    "test": "node --test __tests__/*.test.mjs"
+  },
+  "devDependencies": {
+    "@zazuko/env-node": "^1.0.4",
+    "n3": "^1.26.0",
+    "rdf-validate-shacl": "^0.6.5"
+  }
+}

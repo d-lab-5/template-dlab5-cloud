@@ -1,6 +1,7 @@
 import * as React from "react";
 import type { WrapPageElementBrowserArgs } from "gatsby";
 import { AuthGate } from "./components/AuthGate";
+import { I18nProvider } from "./lib/i18n";
 
 /**
  * Shared by gatsby-browser and gatsby-ssr so the element tree is identical on
@@ -11,5 +12,5 @@ import { AuthGate } from "./components/AuthGate";
 export const wrapPageElement = ({
   element,
 }: Pick<WrapPageElementBrowserArgs, "element">) => (
-  <AuthGate>{element}</AuthGate>
+  <I18nProvider><AuthGate>{element}</AuthGate></I18nProvider>
 );
