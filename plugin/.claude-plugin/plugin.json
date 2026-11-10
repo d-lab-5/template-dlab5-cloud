@@ -1,6 +1,6 @@
 {
   "name": "dlab5-cloud-template",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "The cloud template's own skill: working in template-dlab5-cloud and in every product made from it.",
   "author": {
     "name": "D-LAB-5"

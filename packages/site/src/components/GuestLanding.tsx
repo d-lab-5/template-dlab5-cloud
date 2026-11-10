@@ -1,5 +1,6 @@
 import * as React from "react";
 import { ThemeSegments } from "./ThemeSegments";
+import { HelpSwitch } from "./Feedback";
 
 /**
  * What a visitor sees before signing in.
@@ -35,6 +36,7 @@ export function GuestLanding({ children }: { children: React.ReactNode }) {
         <div className="app-rail__section">
           <h2 className="app-rail__sectionlabel">Appearance</h2>
           <ThemeSegments />
+          <HelpSwitch />
         </div>
 
         <div className="app-rail__section">

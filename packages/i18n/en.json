@@ -154,5 +154,13 @@
   "shell.showmenu": "Show menu",
   "shell.space": "Space",
   "shell.spaceviews": "Space views",
-  "shell.tools": "Tools"
+  "shell.tools": "Tools",
+  "help.switch": "Help on hover",
+  "help.switch.on": "Help on hover is on: turn it off once you know the app.",
+  "help.switch.off": "Help on hover is off. Click to turn it back on.",
+  "help.signout": "Sign out on this browser. Your spaces stay as they are.",
+  "help.link.approve": "Let this edge into the tenant you chose. It gets a token of its own, which you can revoke in Settings.",
+  "help.link.deny": "Refuse this code. The edge is told, and nothing is stored.",
+  "help.edges.revoke": "End this edge's access now. It has to be linked again to come back.",
+  "help.install.get": "The installer and the package for this cloud's current edge, checked by SHA-256."
 }

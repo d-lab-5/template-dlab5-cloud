@@ -1,6 +1,7 @@
 import { generateClient } from "aws-amplify/api";
 import type { DeviceCodeInfo, EdgeSummary, Space, Tenant } from "@dlab5/app-core";
 import { tenantCode } from "@dlab5/app-core";
+import { busy } from "../components/Feedback";
 
 /**
  * The AppSync client, and everything layered on it.
@@ -128,8 +129,13 @@ function unwrap<T>(result: GraphQLResult<T>): T {
 
 const client = () => generateClient();
 
-async function call<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
+/**
+ * One API call. It counts for the loading card (components/Feedback.tsx),
+ * unless `quiet`: polling that runs on its own should not flash it.
+ */
+async function call<T>(query: string, variables?: Record<string, unknown>, { quiet = false } = {}): Promise<T> {
   let result: GraphQLResult<T>;
+  if (!quiet) busy(1);
   try {
     result = (await client().graphql({ query, variables })) as GraphQLResult<T>;
   } catch (err) {
@@ -138,6 +144,8 @@ async function call<T>(query: string, variables?: Record<string, unknown>): Prom
     // or the page shows "[object Object]".
     if (err && typeof err === "object" && "errors" in err) result = err as GraphQLResult<T>;
     else throw err;
+  } finally {
+    if (!quiet) busy(-1);
   }
   return unwrap(result);
 }

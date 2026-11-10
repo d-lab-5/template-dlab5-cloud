@@ -322,6 +322,14 @@ These will bite. Each is load-bearing and each has cost someone time.
 - **An id is minted, never derived from a name** (ADR-0003), and never rendered
   where a name belongs. Edges match spaces by NAME, because ids differ between
   sites (unless a tenant code made them the same, ADR-0005).
+- **Feedback, as on an edge's page** (`components/Feedback.tsx`, mounted once
+  in `wrap-page-element.tsx`): every `call()` in `lib/data.ts` counts for the
+  loading card in the middle of the screen, shown after 300 ms; pass
+  `{ quiet: true }` for polling, and wrap other slow work in `track()`. Help
+  on a button is `data-help={t("…")}`, never `title`: it shows above the
+  button, so it never covers it. The rail's **Help on hover** switch turns it
+  off for experienced users; it is on by default and stored per browser
+  (`app-help`).
 - Texts go into `packages/i18n` (English first, then German and French); the
   i18n test fails when a key or placeholder is missing.
 - Compute in `packages/core`, render in `packages/site`. Anything in core is

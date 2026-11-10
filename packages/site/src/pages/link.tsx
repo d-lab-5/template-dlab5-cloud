@@ -122,10 +122,10 @@ const LinkPage: React.FC = () => {
                   </select>
                 )}
                 {tenants.length === 1 && <span className="app-muted">{t("link.for", { name: tenants[0].name })}</span>}
-                <button type="button" className="app-button" disabled={busy || !tenant} onClick={() => void decide(true)}>
+                <button type="button" className="app-button" disabled={busy || !tenant} data-help={t("help.link.approve")} onClick={() => void decide(true)}>
                   {t("link.approve")}
                 </button>
-                <button type="button" className="app-button app-button--ghost" disabled={busy} onClick={() => void decide(false)}>
+                <button type="button" className="app-button app-button--ghost" disabled={busy} data-help={t("help.link.deny")} onClick={() => void decide(false)}>
                   {t("link.deny")}
                 </button>
               </div>
