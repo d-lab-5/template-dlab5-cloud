@@ -154,5 +154,13 @@
   "shell.showmenu": "Menü einblenden",
   "shell.space": "Bereich",
   "shell.spaceviews": "Ansichten des Bereichs",
-  "shell.tools": "Werkzeuge"
+  "shell.tools": "Werkzeuge",
+  "help.switch": "Hilfe beim Zeigen",
+  "help.switch.on": "Die Hilfe beim Zeigen ist an: schalte sie aus, sobald du die App kennst.",
+  "help.switch.off": "Die Hilfe beim Zeigen ist aus. Klicke, um sie wieder einzuschalten.",
+  "help.signout": "In diesem Browser abmelden. Deine Bereiche bleiben, wie sie sind.",
+  "help.link.approve": "Diese Edge in den gewählten Mandanten aufnehmen. Sie erhält ein eigenes Token, das du in den Einstellungen widerrufen kannst.",
+  "help.link.deny": "Diesen Code ablehnen. Die Edge erfährt es, und nichts wird gespeichert.",
+  "help.edges.revoke": "Den Zugang dieser Edge sofort beenden. Um zurückzukommen, muss sie neu verbunden werden.",
+  "help.install.get": "Installer und Paket der aktuellen Edge dieser Cloud, per SHA-256 geprüft."
 }

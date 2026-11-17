@@ -151,7 +151,7 @@ function PasswordField({
           onClick={() => setShown((previous) => !previous)}
           aria-pressed={shown}
           aria-label={shown ? t("auth.hidepassword") : t("auth.showpassword")}
-          title={shown ? t("auth.hidepassword") : t("auth.showpassword")}
+          data-help={shown ? t("auth.hidepassword") : t("auth.showpassword")}
           tabIndex={-1}
         >
           {shown ? (

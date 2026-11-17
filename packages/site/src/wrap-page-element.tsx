@@ -1,6 +1,7 @@
 import * as React from "react";
 import type { WrapPageElementBrowserArgs } from "gatsby";
 import { AuthGate } from "./components/AuthGate";
+import { BusyCard, HelpLayer } from "./components/Feedback";
 import { I18nProvider } from "./lib/i18n";
 
 /**
@@ -12,5 +13,7 @@ import { I18nProvider } from "./lib/i18n";
 export const wrapPageElement = ({
   element,
 }: Pick<WrapPageElementBrowserArgs, "element">) => (
-  <I18nProvider><AuthGate>{element}</AuthGate></I18nProvider>
+  // the loading card and button help, outside the gate so the sign-in page
+  // has them too (components/Feedback.tsx)
+  <I18nProvider><AuthGate>{element}</AuthGate><BusyCard /><HelpLayer /></I18nProvider>
 );

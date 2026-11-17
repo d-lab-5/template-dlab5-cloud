@@ -103,7 +103,7 @@ function InstallEdgePanel() {
         <li>{t("install.step.link")} <a href="/link/">{t("nav.link")}</a></li>
       </ol>
       {!release && (
-        <button type="button" className="app-button" onClick={() => void get()} disabled={busy}>
+        <button type="button" className="app-button" data-help={t("help.install.get")} onClick={() => void get()} disabled={busy}>
           {busy ? "…" : t("install.get")}
         </button>
       )}
@@ -182,7 +182,7 @@ function EdgesPanel() {
                 <td>{e.last_telemetry_at ? date(e.last_telemetry_at, true) : t("edges.never")}</td>
                 <td>
                   {e.status === "linked" && (
-                    <button type="button" className="app-button app-button--ghost" onClick={() => void revoke(e)}>
+                    <button type="button" className="app-button app-button--ghost" data-help={t("help.edges.revoke")} onClick={() => void revoke(e)}>
                       {t("edges.revoke")}
                     </button>
                   )}

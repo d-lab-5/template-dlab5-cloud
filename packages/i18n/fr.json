@@ -154,5 +154,13 @@
   "shell.showmenu": "Afficher le menu",
   "shell.space": "Espace",
   "shell.spaceviews": "Vues de l'espace",
-  "shell.tools": "Outils"
+  "shell.tools": "Outils",
+  "help.switch": "Aide au survol",
+  "help.switch.on": "L'aide au survol est activée : désactivez-la quand vous connaissez l'application.",
+  "help.switch.off": "L'aide au survol est désactivée. Cliquez pour la réactiver.",
+  "help.signout": "Se déconnecter dans ce navigateur. Vos espaces restent tels quels.",
+  "help.link.approve": "Admettre cet edge dans le locataire choisi. Il reçoit son propre jeton, révocable dans les Paramètres.",
+  "help.link.deny": "Refuser ce code. L'edge en est informé, et rien n'est enregistré.",
+  "help.edges.revoke": "Mettre fin à l'accès de cet edge maintenant. Il devra être relié à nouveau pour revenir.",
+  "help.install.get": "L'installeur et le paquet de l'edge actuel de ce cloud, vérifiés par SHA-256."
 }

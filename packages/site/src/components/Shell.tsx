@@ -2,6 +2,7 @@ import * as React from "react";
 import { Link } from "gatsby";
 import { signOutAndReload, useSession } from "./AuthGate";
 import { ThemeSegments } from "./ThemeSegments";
+import { HelpSwitch } from "./Feedback";
 import { listSpaces } from "../lib/data";
 import type { Space } from "../lib/data";
 import { LangPicker, useT } from "../lib/i18n";
@@ -304,6 +305,7 @@ export function Shell({ children, space, active, title }: ShellProps) {
         <RailSection label={t("shell.appearance")}>
           <ThemeSegments />
           <LangPicker className="app-select app-select--small" />
+          <HelpSwitch />
         </RailSection>
 
         <RailSection label={t("shell.account")}>
@@ -360,6 +362,7 @@ export function Shell({ children, space, active, title }: ShellProps) {
               <button
                 type="button"
                 className="app-rail__item app-rail__item--button"
+                data-help={t("help.signout")}
                 onClick={() => void signOutAndReload()}
               >
                 {icon(
@@ -386,6 +389,7 @@ export function Shell({ children, space, active, title }: ShellProps) {
             className="app-linkbutton app-shell__railtoggle"
             onClick={() => setRailOpen((open) => !open)}
             aria-label={railOpen ? t("shell.hidemenu") : t("shell.showmenu")}
+            data-help={railOpen ? t("shell.hidemenu") : t("shell.showmenu")}
             aria-expanded={railOpen}
           >
             ☰

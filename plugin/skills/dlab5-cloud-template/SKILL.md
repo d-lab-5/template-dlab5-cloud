@@ -198,6 +198,35 @@ Delete it deliberately:
 npm --prefix backend run sandbox:delete
 ```
 
+## Deploying a branch on Amplify Hosting
+
+A product's cloud is one Amplify app; each connected git branch is its own
+environment, with its own user pool, tables and bucket (`ampx pipeline-deploy
+--branch $AWS_BRANCH` in `amplify.yml`). Connect `stage` first and test there;
+`main` follows by the promotion PR.
+
+1. **Region `eu-central-1`.** The CSP in `customHttp.yml` names that region's
+   AppSync, Cognito and S3 hosts; another region needs every line changed.
+2. **Repository at its root, not a monorepo app.** `amplify.yml` at the root
+   builds the backend and the site; keep the detected file. Build image on
+   **Node.js 22**.
+3. **Service role `dlab5-backend-deployment`**, the one D-LAB-5 role for every
+   product's Amplify app and branch: trusted entity `amplify.amazonaws.com`,
+   managed policy `AmplifyBackendDeployFullAccess` (what `pipeline-deploy`
+   needs to deploy Cognito, AppSync, DynamoDB, Lambda and S3 through CDK). Not
+   AdministratorAccess. Create it once per AWS account (IAM → Roles → AWS
+   service → Amplify) and choose it for each new app.
+4. **The rewrites of constraint 11**, one per client-only route, above the
+   catch-all.
+5. **A first operator per branch.** Every branch has a new user pool: create
+   the user in its Cognito console, add it to the operators' group, sign in
+   (two-step sign-in is set up then), create the first tenant in Settings.
+
+**A branch missing from the console's list** was usually pushed after the
+GitHub App's list was read. Connect what is there, then App → Branches →
+*Connect branch* reads it again; if the branch is still missing, check the
+AWS Amplify GitHub App's repository access in GitHub.
+
 ## Non-obvious constraints
 
 These will bite. Each is load-bearing and each has cost someone time.
@@ -307,6 +336,11 @@ These will bite. Each is load-bearing and each has cost someone time.
 21. **After changing `packages/ontology`, run `node backend/scripts/sync-ontology.mjs`.**
     The Lambdas validate with a generated copy; `graph-shared/validate.test.ts`
     fails on drift.
+22. **`customHttp.yml` denies the camera, microphone and location to every
+    page** (`Permissions-Policy: camera=() …`), and only the hosted site sends
+    it. A page that scans codes or takes photos works on localhost and fails
+    once deployed: allow just what it uses, for the site only (`camera=(self)`,
+    as Maker-5's `/scan/` does). Web NFC needs no entry.
 
 ## House conventions
 
@@ -322,6 +356,14 @@ These will bite. Each is load-bearing and each has cost someone time.
 - **An id is minted, never derived from a name** (ADR-0003), and never rendered
   where a name belongs. Edges match spaces by NAME, because ids differ between
   sites (unless a tenant code made them the same, ADR-0005).
+- **Feedback, as on an edge's page** (`components/Feedback.tsx`, mounted once
+  in `wrap-page-element.tsx`): every `call()` in `lib/data.ts` counts for the
+  loading card in the middle of the screen, shown after 300 ms; pass
+  `{ quiet: true }` for polling, and wrap other slow work in `track()`. Help
+  on a button is `data-help={t("…")}`, never `title`: it shows above the
+  button, so it never covers it. The rail's **Help on hover** switch turns it
+  off for experienced users; it is on by default and stored per browser
+  (`app-help`).
 - Texts go into `packages/i18n` (English first, then German and French); the
   i18n test fails when a key or placeholder is missing.
 - Compute in `packages/core`, render in `packages/site`. Anything in core is
