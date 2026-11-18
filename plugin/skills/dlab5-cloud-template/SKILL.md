@@ -37,7 +37,8 @@ What is placeholder, and expected to go:
 |---|---|
 | `packages/site/src/pages/w.tsx` — five stub views | your actual screens |
 | `Shell.tsx` → `railItems()` / `toolItems()` | your menu |
-| `GuestLanding.tsx` → hero copy and `<Art/>` | what your app is |
+| `GuestLanding.tsx` → the hero, the rail's section labels and the Accounts note (plain English, "a tenant's spaces") | what your app is, in `packages/i18n` |
+| the rail's brand `template<span>.dlab5</span>` in `Shell.tsx` **and** `GuestLanding.tsx` | your name or your domain — see below |
 | `packages/ontology/` — a placeholder T-Box, concepts and shapes | your domain's vocabulary (then `node backend/scripts/sync-ontology.mjs`) |
 | `--tenant` / `--space` nouns (rename.mjs rewrites the English texts) | German and French in `packages/i18n` by hand |
 | a space's object (`loadObject`/`saveObject`) as the only content | your models, beside `Tenant`/`Space` |
@@ -52,6 +53,45 @@ two-step sign-in), `amplify.ts`, `useTheme`, `gatsby-ssr.tsx`,
 `docs/specs/edge-cloud-api.md`, `tokens.css`, `scripts/dev.sh`,
 `scripts/demo.py`, `scripts/verify-auth.mjs`, and the constraints below. Those are the point of
 the template.
+
+### Before the first deploy: what the rename misses
+
+The same applies whether the product was made with GitHub's *Use this
+template*, a clone or Copier: the repository arrives as the template, and
+**nothing fails while it still is**. Tests pass, the build passes, Amplify
+deploys, and the live site greets visitors with "A starting point, not a
+product … Fork it, run `npm run rename`". Maker-5 shipped exactly that to
+stage and production. Check these by hand:
+
+- **The brand in the rail** is written `template<span className="mk-rail__brandaccent">.dlab5</span>`,
+  split across JSX, so rename.mjs's `template.dlab5` substitution never
+  matches it — in `Shell.tsx` and again in `GuestLanding.tsx`. It also
+  assumes `<name>.dlab5`; a product with its own domain wants that instead
+  (Maker-5: `maker5<span …>.cloud</span>`). Make it one `Brand` component and
+  use it in both.
+- **`GuestLanding.tsx`**: the hero, the tagline, the lede and the rail's
+  *Access / Appearance / Accounts* labels are plain English in the
+  component. Say what the product is, with the product's nouns, and move
+  every text to `packages/i18n` (en, de, fr) with `useT()`.
+- **Page titles** (`export const Head` in every `pages/*.tsx`): "Spaces ·
+  <name>.dlab5", "Space · …" — the template's nouns and brand.
+- **`app.name`** in `packages/i18n` is "This site"; the About page shows it.
+- **The authenticator label**: `TOTP_ISSUER` in `AuthGate.tsx` and `APP` in
+  `MfaSetup.tsx`. Changing it later only relabels new enrolments.
+- The hosting side, which no file in the repo holds: the rewrites
+  (constraint 11), the service role and region (*Deploying a branch*).
+
+A sweep that finds what is left:
+
+```bash
+grep -rnE "template(<|\.dlab5)|not a product|npm run rename|tenant's spaces|This site\"" packages/site/src packages/i18n
+```
+
+Then look at the guest page of the built site with a backend
+(`npx ampx generate outputs --app-id <id> --branch stage --out-dir backend`,
+copy it to `packages/site/src/`, `npm run build`, `npx gatsby serve`):
+without outputs the build only shows "Backend not configured", which hides
+the guest page entirely. Delete the copied outputs afterwards.
 
 ## What this is
 
