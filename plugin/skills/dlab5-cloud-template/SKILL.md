@@ -114,6 +114,9 @@ device token bound to that tenant. Every edge route sits behind
 `versionGate` (426 below `MIN_EDGE_VERSION`) and `verifyDeviceToken`, and takes
 the tenant from the token row, never from the body. The edge half is
 template-dlab5-edge (skill dlab5-edge-template).
+The build publishes the edge API address at `/.well-known/dlab5-edge.json`
+(`scripts/well-known.mjs`, run by amplify.yml after the outputs are copied),
+so an edge links with the site's own address.
 
 > Treat this repository as public. Read `SECURITY.md` before committing.
 > Never commit `amplify_outputs.json`, AWS account IDs or ARNs, `.env` files,

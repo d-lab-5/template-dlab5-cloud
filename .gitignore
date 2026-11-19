@@ -155,6 +155,8 @@ public/
 # is environment state, not source, so it is never committed.
 amplify_outputs.json
 amplify_outputs.d.ts
+# written by scripts/well-known.mjs in the build
+packages/site/static/.well-known/dlab5-edge.json
 .amplify/
 
 # Workspace package build output. packages/site imports @dlab5/app-core from
