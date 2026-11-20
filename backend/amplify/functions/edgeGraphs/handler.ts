@@ -5,7 +5,7 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from "aws-lambda";
 import { extractBearer, json, parseJsonBody, versionGate } from "../edge-shared/http";
 import { verifyDeviceToken } from "../edge-shared/registry";
-import { BadGraphRequest, getGraph, listGraphs, saveGraph } from "../graph-shared/store";
+import { BadGraphRequest, getGraph, listGraphs, saveGraph, touchGraph } from "../graph-shared/store";
 import { getSpace, getTenant, spacesOfTenant } from "../shared/spaces";
 
 export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> => {
@@ -31,14 +31,17 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     if (event.rawPath.endsWith("/graphs/list")) return json(200, { graphs: await listGraphs(tenant) });
     const space = await getSpace(String(body.name || ""));
     if (!space || space.tenantId !== tenant) return json(404, { error: "not_found", message: "no such space in this tenant" });
+    // an edge that reads or writes a space's graph is using it (activity.ts)
+    const edge = { id: verified.row.edge_id, name: verified.row.hostname };
     if (event.rawPath.endsWith("/graphs/get")) {
       const g = await getGraph(space.id);
+      await touchGraph(space.id, edge, g).catch((err) => console.warn("touch failed", err));
       return json(200, g ?? { name: space.id, version: 0, ttl: "" });
     }
     if (event.rawPath.endsWith("/graphs/put")) {
       if (typeof body.ttl !== "string") return json(400, { error: "invalid_request", message: "ttl is required" });
       const r = await saveGraph(space.id, body.ttl, Number(body.baseVersion ?? -1),
-        `edge:${verified.row.edge_id}`, { spaceId: space.id, tenantId: tenant });
+        `edge:${verified.row.edge_id}`, { spaceId: space.id, tenantId: tenant }, edge);
       if (r.status === "conflict") return json(409, { error: "version_conflict", current: r.current });
       if (r.status === "invalid") return json(422, { error: "invalid", problems: r.problems });
       return json(200, r);

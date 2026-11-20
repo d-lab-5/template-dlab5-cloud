@@ -162,5 +162,17 @@
   "help.link.approve": "Let this edge into the tenant you chose. It gets a token of its own, which you can revoke in Settings.",
   "help.link.deny": "Refuse this code. The edge is told, and nothing is stored.",
   "help.edges.revoke": "End this edge's access now. It has to be linked again to come back.",
-  "help.install.get": "The installer and the package for this cloud's current edge, checked by SHA-256."
+  "help.install.get": "The installer and the package for this cloud's current edge, checked by SHA-256.",
+  "ago.d": "{n} days ago",
+  "ago.h": "{n} h ago",
+  "ago.min": "{n} min ago",
+  "ago.now": "just now",
+  "home.active": "Active",
+  "home.active.hint": "Used by an edge in the last {days} days.",
+  "home.active.none": "No edge has used a space lately.",
+  "home.anEdge": "an edge",
+  "home.edgeUsed": "On {edge}, {when}",
+  "home.passive": "Passive",
+  "home.passive.hint": "Not open on any edge lately.",
+  "home.passive.none": "Every space is in use."
 }

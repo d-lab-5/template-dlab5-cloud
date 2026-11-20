@@ -384,6 +384,16 @@ These will bite. Each is load-bearing and each has cost someone time.
     it. A page that scans codes or takes photos works on localhost and fails
     once deployed: allow just what it uses, for the site only (`camera=(self)`,
     as Maker-5's `/scan/` does). Web NFC needs no entry.
+23. **`saveGraph` is an UpdateItem, not a PutItem.** The Graph row also carries
+    `edgeSeenAt`/`edgeSeenBy`/`edgeSeenName` (the last edge that read or wrote
+    it, written by `touchGraph` at most once an hour, `TOUCH_EVERY_MS`), and a
+    product may add its own fields (Maker-5 keeps repo links there). A
+    PutItem would wipe them on every save. A new field goes in the `SET` list
+    of `saveGraph`, and in `data/resource.ts` so the site can read it. The
+    landing page splits spaces into active (`isActive` in core's
+    `activity.ts`: an edge in the last `ACTIVE_DAYS`) and passive; a product
+    that needs that on the server imports `graph-shared/activity.ts`, which
+    keeps the SHACL validator out of the Lambda.
 
 ## House conventions
 

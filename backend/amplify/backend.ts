@@ -247,8 +247,8 @@ spaceRead(backend.edgeDeviceApproval.resources.lambda, backend.edgeDeviceApprova
 // A-Boxes (ADR-0007): saveGraph for the browser, edgeGraphs for edges. Both
 // read and write the Graph table and nothing else; edgeGraphs also checks the
 // device token.
-allow(backend.graphs.resources.lambda, ["dynamodb:GetItem", "dynamodb:PutItem"], [graphTable.tableArn]);
-allow(backend.edgeGraphs.resources.lambda, ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:Scan"], [graphTable.tableArn]);
+allow(backend.graphs.resources.lambda, ["dynamodb:GetItem", "dynamodb:UpdateItem"], [graphTable.tableArn]);
+allow(backend.edgeGraphs.resources.lambda, ["dynamodb:GetItem", "dynamodb:UpdateItem", "dynamodb:Scan"], [graphTable.tableArn]);
 allow(backend.edgeGraphs.resources.lambda, ["dynamodb:GetItem"], [edgeRegistryTable.tableArn]);
 allow(backend.edgeModels.resources.lambda, ["dynamodb:GetItem"], [edgeRegistryTable.tableArn]);
 for (const f of [backend.graphs, backend.edgeGraphs]) {

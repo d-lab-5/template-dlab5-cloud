@@ -27,3 +27,6 @@ export {
 export type { DeviceCodeInfo, EdgeSummary, Space, Tenant } from "./types.js";
 
 export { assertSpace, isSpace, spaceProblems } from "./validate.js";
+
+export { ACTIVE_DAYS, ago, isActive, split } from "./activity.js";
+export type { Activity } from "./activity.js";

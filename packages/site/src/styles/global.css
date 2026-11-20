@@ -1123,3 +1123,11 @@ a {
 .app-install__manual summary { cursor: pointer; font-size: 0.875rem; color: var(--app-text-muted); }
 
 .app-install__cmd { font-family: var(--app-font-mono); font-size: 0.75rem; background: var(--app-bg-sunken); padding: var(--app-space-2) var(--app-space-3); border-radius: var(--app-radius-sm); overflow-x: auto; }
+
+/* -- the landing page: active and passive spaces ------------------------- */
+.app-split { display: grid; gap: var(--app-space-6); grid-template-columns: 1fr 1fr; align-items: start; }
+.app-split__half { min-width: 0; }
+.app-split__title { font-size: 1.05rem; margin: 0; }
+.app-split__hint { margin: 0.15rem 0 var(--app-space-3); font-size: 0.85rem; }
+.app-cards--one { grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
+@media (max-width: 760px) { .app-split { grid-template-columns: 1fr; } }
