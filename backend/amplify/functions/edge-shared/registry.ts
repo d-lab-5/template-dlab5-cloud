@@ -17,6 +17,7 @@ export const EDGE_REGISTRY_TABLE = process.env.EDGE_REGISTRY_TABLE_NAME!;
 export interface EdgeRow {
   edge_id: string;
   machine_id?: string;
+  hostname?: string | null;
   home_id?: string | null;
   linked_by_cognito_sub?: string;
   /** ADR-0005: every call is limited to this tenant's spaces. */

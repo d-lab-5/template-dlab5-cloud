@@ -1,5 +1,5 @@
 import { generateClient } from "aws-amplify/api";
-import type { DeviceCodeInfo, EdgeSummary, Space, Tenant } from "@dlab5/app-core";
+import type { Activity, DeviceCodeInfo, EdgeSummary, Space, Tenant } from "@dlab5/app-core";
 import { tenantCode } from "@dlab5/app-core";
 import { busy } from "../components/Feedback";
 
@@ -86,6 +86,13 @@ const EDGE_RELEASE = /* GraphQL */ `query EdgeRelease { edgeRelease }`;
 
 const GET_GRAPH = /* GraphQL */ `
   query GetGraph($name: ID!) { getGraph(name: $name) { name ttl version updatedAt updatedBy } }
+`;
+const LIST_GRAPH_ACTIVITY = /* GraphQL */ `
+  query ListGraphActivity($tenantId: ID!, $nextToken: String) {
+    listGraphs(filter: { tenantId: { eq: $tenantId } }, limit: 500, nextToken: $nextToken) {
+      items { name updatedAt edgeSeenAt edgeSeenName } nextToken
+    }
+  }
 `;
 const SAVE_GRAPH = /* GraphQL */ `
   mutation SaveGraph($name: String!, $ttl: String!, $baseVersion: Int!) {
@@ -270,6 +277,12 @@ export interface StoredGraph {
 export async function loadGraph(name: string): Promise<StoredGraph> {
   const g = (await call<{ getGraph: StoredGraph | null }>(GET_GRAPH, { name })).getGraph;
   return g ?? { ttl: "", version: 0 };
+}
+
+/** A tenant's spaces, by id: when an edge last read or wrote each graph (core's activity.ts). */
+export async function graphActivity(tenantId: string): Promise<Record<string, Activity>> {
+  const rows = await all_<Activity>(LIST_GRAPH_ACTIVITY, "listGraphs", { tenantId });
+  return Object.fromEntries(rows.map((r) => [r.name, r]));
 }
 
 export type SaveGraphResult =

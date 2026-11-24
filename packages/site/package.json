@@ -7,7 +7,8 @@
     "develop": "gatsby develop -H 0.0.0.0",
     "build": "gatsby build",
     "serve": "gatsby serve",
-    "clean": "gatsby clean"
+    "clean": "gatsby clean",
+    "test": "node --test __tests__/*.test.ts"
   },
   "dependencies": {
     "@dlab5/app-core": "^0.1.0",

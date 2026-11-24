@@ -162,5 +162,17 @@
   "help.link.approve": "Admettre cet edge dans le locataire choisi. Il reçoit son propre jeton, révocable dans les Paramètres.",
   "help.link.deny": "Refuser ce code. L'edge en est informé, et rien n'est enregistré.",
   "help.edges.revoke": "Mettre fin à l'accès de cet edge maintenant. Il devra être relié à nouveau pour revenir.",
-  "help.install.get": "L'installeur et le paquet de l'edge actuel de ce cloud, vérifiés par SHA-256."
+  "help.install.get": "L'installeur et le paquet de l'edge actuel de ce cloud, vérifiés par SHA-256.",
+  "ago.d": "il y a {n} jours",
+  "ago.h": "il y a {n} h",
+  "ago.min": "il y a {n} min",
+  "ago.now": "à l'instant",
+  "home.active": "Actifs",
+  "home.active.hint": "Utilisés par un edge ces {days} derniers jours.",
+  "home.active.none": "Aucun edge n'a utilisé d'espace récemment.",
+  "home.anEdge": "un edge",
+  "home.edgeUsed": "Sur {edge}, {when}",
+  "home.passive": "Passifs",
+  "home.passive.hint": "Ouverts sur aucun edge récemment.",
+  "home.passive.none": "Chaque espace est utilisé."
 }

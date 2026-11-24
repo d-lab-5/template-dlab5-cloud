@@ -37,7 +37,8 @@ What is placeholder, and expected to go:
 |---|---|
 | `packages/site/src/pages/w.tsx` — five stub views | your actual screens |
 | `Shell.tsx` → `railItems()` / `toolItems()` | your menu |
-| `GuestLanding.tsx` → hero copy and `<Art/>` | what your app is |
+| `GuestLanding.tsx` → the hero, the rail's section labels and the Accounts note (plain English, "a tenant's spaces") | what your app is, in `packages/i18n` |
+| the rail's brand `template<span>.dlab5</span>` in `Shell.tsx` **and** `GuestLanding.tsx` | your name or your domain — see below |
 | `packages/ontology/` — a placeholder T-Box, concepts and shapes | your domain's vocabulary (then `node backend/scripts/sync-ontology.mjs`) |
 | `--tenant` / `--space` nouns (rename.mjs rewrites the English texts) | German and French in `packages/i18n` by hand |
 | a space's object (`loadObject`/`saveObject`) as the only content | your models, beside `Tenant`/`Space` |
@@ -52,6 +53,48 @@ two-step sign-in), `amplify.ts`, `useTheme`, `gatsby-ssr.tsx`,
 `docs/specs/edge-cloud-api.md`, `tokens.css`, `scripts/dev.sh`,
 `scripts/demo.py`, `scripts/verify-auth.mjs`, and the constraints below. Those are the point of
 the template.
+
+### Before the first deploy: what the rename misses
+
+The same applies whether the product was made with GitHub's *Use this
+template*, a clone or Copier: the repository arrives as the template, and
+**nothing fails while it still is**. Tests pass, the build passes, Amplify
+deploys, and the live site greets visitors with "A starting point, not a
+product … Fork it, run `npm run rename`". Maker-5 shipped exactly that to
+stage and production. Check these by hand:
+
+- **The brand in the rail** is written `template<span className="mk-rail__brandaccent">.dlab5</span>`,
+  split across JSX, so rename.mjs's `template.dlab5` substitution never
+  matches it — in `Shell.tsx` and again in `GuestLanding.tsx`. It also
+  assumes `<name>.dlab5`; a product with its own domain wants that instead
+  (Maker-5: `maker5<span …>.cloud</span>`). Make it one `Brand` component and
+  use it in both.
+- **`GuestLanding.tsx`**: the hero, the tagline, the lede and the rail's
+  *Access / Appearance / Accounts* labels are plain English in the
+  component. Say what the product is, with the product's nouns, and move
+  every text to `packages/i18n` (en, de, fr) with `useT()`.
+- **Page titles** (`export const Head` in every `pages/*.tsx`): "Spaces ·
+  <name>.dlab5", "Space · …" — the template's nouns and brand.
+- **`app.name`** in `packages/i18n` is "This site"; the About page shows it.
+- **The authenticator label**: `PRODUCT` in `packages/site/src/lib/totp.ts`
+  (the rename writes `<name>.dlab5`; set the product's own short name). The
+  environment is added from the host, so the label reads "<product> prod" or
+  "<product> stage" (constraint 16). Changing it later only relabels new
+  enrolments.
+- The hosting side, which no file in the repo holds: the rewrites
+  (constraint 11), the service role and region (*Deploying a branch*).
+
+A sweep that finds what is left:
+
+```bash
+grep -rnE "template(<|\.dlab5)|not a product|npm run rename|tenant's spaces|This site\"" packages/site/src packages/i18n
+```
+
+Then look at the guest page of the built site with a backend
+(`npx ampx generate outputs --app-id <id> --branch stage --out-dir backend`,
+copy it to `packages/site/src/`, `npm run build`, `npx gatsby serve`):
+without outputs the build only shows "Backend not configured", which hides
+the guest page entirely. Delete the copied outputs afterwards.
 
 ## What this is
 
@@ -74,6 +117,9 @@ device token bound to that tenant. Every edge route sits behind
 `versionGate` (426 below `MIN_EDGE_VERSION`) and `verifyDeviceToken`, and takes
 the tenant from the token row, never from the body. The edge half is
 template-dlab5-edge (skill dlab5-edge-template).
+The build publishes the edge API address at `/.well-known/dlab5-edge.json`
+(`scripts/well-known.mjs`, run by amplify.yml after the outputs are copied),
+so an edge links with the site's own address.
 
 > Treat this repository as public. Read `SECURITY.md` before committing.
 > Never commit `amplify_outputs.json`, AWS account IDs or ARNs, `.env` files,
@@ -321,6 +367,17 @@ These will bite. Each is load-bearing and each has cost someone time.
     pool's MFA is OPTIONAL (members who only read are not asked); `AuthGate`
     and every admin Lambda (`shared/mfa.ts`, AdminGetUser) require TOTP. An ID
     token says nothing about MFA, so never check it there.
+    **The authenticator label names the product and the environment**
+    (`lib/totp.ts`: "maker5.cloud stage", "maker5.cloud prod"), because a
+    person enrols on stage and on prod, for every product, and one app then
+    lists a dozen identical entries. The environment comes from the host
+    (stage., dev., test., qa., sandbox., preview., an Amplify branch host,
+    localhost; anything else is prod), so no build variable is needed. Put
+    nothing else in it: no tenant, account or pool id, since anyone holding
+    the phone sees it; an environment's name is public anyway, in its URL.
+    No colon either: the otpauth label is `<issuer>:<account>`, and a colon in
+    the issuer splits it. Entries enrolled before keep their old name; the
+    person renames them in the app.
 17. **Amplify v6 REJECTS with the whole GraphQL result** when a resolver
     throws. `call()` in `lib/data.ts` unwraps it; a call that bypasses `call()`
     shows "[object Object]".
@@ -341,6 +398,16 @@ These will bite. Each is load-bearing and each has cost someone time.
     it. A page that scans codes or takes photos works on localhost and fails
     once deployed: allow just what it uses, for the site only (`camera=(self)`,
     as Maker-5's `/scan/` does). Web NFC needs no entry.
+23. **`saveGraph` is an UpdateItem, not a PutItem.** The Graph row also carries
+    `edgeSeenAt`/`edgeSeenBy`/`edgeSeenName` (the last edge that read or wrote
+    it, written by `touchGraph` at most once an hour, `TOUCH_EVERY_MS`), and a
+    product may add its own fields (Maker-5 keeps repo links there). A
+    PutItem would wipe them on every save. A new field goes in the `SET` list
+    of `saveGraph`, and in `data/resource.ts` so the site can read it. The
+    landing page splits spaces into active (`isActive` in core's
+    `activity.ts`: an edge in the last `ACTIVE_DAYS`) and passive; a product
+    that needs that on the server imports `graph-shared/activity.ts`, which
+    keeps the SHACL validator out of the Lambda.
 
 ## House conventions
 

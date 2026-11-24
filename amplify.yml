@@ -41,6 +41,9 @@ frontend:
         # frontend-only rebuild (no backend phase) must not fail the branch.
         # AuthGate renders its "backend not configured" notice instead.
         - cp backend/amplify_outputs.json packages/site/src/amplify_outputs.json || echo "no backend outputs; the app will show the unconfigured notice"
+        # An edge links with this site's address alone: it reads the edge API
+        # from /.well-known/dlab5-edge.json (scripts/well-known.mjs).
+        - node scripts/well-known.mjs
     build:
       commands:
         # The workspace packages are plain tsc builds that packages/site

@@ -1,4 +1,5 @@
 import * as React from "react";
+import { totpIssuer } from "../lib/totp";
 import {
   confirmSignIn,
   fetchAuthSession,
@@ -33,7 +34,6 @@ export interface Session {
 }
 
 /** The name an authenticator app shows next to the code. rename.mjs rewrites it. */
-const TOTP_ISSUER = "template.dlab5";
 
 const AuthContext = React.createContext<Session | null>(null);
 
@@ -203,7 +203,7 @@ function SignInForm({ onSignedIn }: { onSignedIn: () => Promise<void> }) {
     if (s === "CONFIRM_SIGN_IN_WITH_TOTP_CODE") { setCode(""); setStep("totp"); setBusy(false); return; }
     if (s === "CONTINUE_SIGN_IN_WITH_TOTP_SETUP") {
       const d = (res.nextStep as { totpSetupDetails: { sharedSecret: string; getSetupUri: (a: string, b?: string) => URL } }).totpSetupDetails;
-      setSetup({ uri: d.getSetupUri(TOTP_ISSUER, email).toString(), secret: d.sharedSecret });
+      setSetup({ uri: d.getSetupUri(totpIssuer(), email).toString(), secret: d.sharedSecret });
       setStep("totpsetup"); setBusy(false); return;
     }
     if (s === "CONTINUE_SIGN_IN_WITH_MFA_SELECTION" || s === "CONTINUE_SIGN_IN_WITH_MFA_SETUP_SELECTION") {

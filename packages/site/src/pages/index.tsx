@@ -3,12 +3,15 @@ import type { HeadFC, PageProps } from "gatsby";
 import { Link } from "gatsby";
 import { Shell } from "../components/Shell";
 import { useSession } from "../components/AuthGate";
-import { listSpaces } from "../lib/data";
+import { ACTIVE_DAYS, ago, split } from "@dlab5/app-core";
+import type { Activity } from "@dlab5/app-core";
+import { graphActivity, listSpaces } from "../lib/data";
 import type { Space } from "../lib/data";
 import { useT } from "../lib/i18n";
 
 /**
- * The launcher: the spaces this person can open, grouped by tenant.
+ * The launcher: the spaces this person can open, split into active (an edge
+ * read or wrote the graph in the last ACTIVE_DAYS days) and passive.
  *
  * Reached only after AuthGate has a session, so there is no signed-out branch
  * to handle here — and no page below needs one either. That is the whole point
@@ -24,9 +27,16 @@ const IndexPage: React.FC<PageProps> = () => {
   const [spaces, setSpaces] = React.useState<Space[] | null>(null);
   const [error, setError] = React.useState<string | null>(null);
 
+  const [activity, setActivity] = React.useState<Record<string, Activity>>({});
+
   React.useEffect(() => {
     listSpaces()
-      .then(setSpaces)
+      .then(async (list) => {
+        setSpaces(list);
+        // the activity is a nicety: a space without it is simply passive
+        const rows = await Promise.all([...new Set(list.map((s) => s.tenantId))].map((id) => graphActivity(id).catch(() => ({}))));
+        setActivity(Object.assign({}, ...rows));
+      })
       .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
   }, []);
 
@@ -70,20 +80,38 @@ const IndexPage: React.FC<PageProps> = () => {
         </div>
       )}
 
-      {spaces && spaces.length > 0 && (
-        <ul className="app-cards">
-          {spaces.map((space) => (
+      {spaces && spaces.length > 0 && (() => {
+        const { active, passive } = split(spaces, activity);
+        const card = (space: Space) => {
+          const a = activity[space.id];
+          const used = ago(a?.edgeSeenAt);
+          return (
             <li key={space.id}>
               <a className="app-card" href={`/w/${space.id}/`}>
                 <span className="app-card__title">{space.kind === "private" ? "🔒 " : ""}{space.name}</span>
                 {/* The id, deliberately not shown. ADR-0003: never render an id
                     where a name belongs. */}
                 {tenants.length > 1 && space.tenantName && <span className="app-card__meta">{space.tenantName}</span>}
+                {used && <span className="app-card__meta">{t("home.edgeUsed", { edge: a?.edgeSeenName || t("home.anEdge"), when: t(used.key, { n: used.n }) })}</span>}
               </a>
             </li>
-          ))}
-        </ul>
-      )}
+          );
+        };
+        return (
+          <div className="app-split">
+            <section className="app-split__half">
+              <h2 className="app-split__title">{t("home.active")}</h2>
+              <p className="app-muted app-split__hint">{t("home.active.hint", { days: ACTIVE_DAYS })}</p>
+              {active.length ? <ul className="app-cards app-cards--one">{active.map(card)}</ul> : <p className="app-muted">{t("home.active.none")}</p>}
+            </section>
+            <section className="app-split__half">
+              <h2 className="app-split__title">{t("home.passive")}</h2>
+              <p className="app-muted app-split__hint">{t("home.passive.hint")}</p>
+              {passive.length ? <ul className="app-cards app-cards--one">{passive.map(card)}</ul> : <p className="app-muted">{t("home.passive.none")}</p>}
+            </section>
+          </div>
+        );
+      })()}
     </Shell>
   );
 };

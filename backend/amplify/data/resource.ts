@@ -76,6 +76,10 @@ const schema = a.schema({
       version: a.integer().required(),
       triples: a.integer(),
       updatedBy: a.string(),
+      /** The last time an edge read or wrote it, and which edge (activity.ts). */
+      edgeSeenAt: a.datetime(),
+      edgeSeenBy: a.string(),
+      edgeSeenName: a.string(),
     })
     .identifier(["name"])
     .authorization((allow) => [

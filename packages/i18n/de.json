@@ -162,5 +162,17 @@
   "help.link.approve": "Diese Edge in den gewählten Mandanten aufnehmen. Sie erhält ein eigenes Token, das du in den Einstellungen widerrufen kannst.",
   "help.link.deny": "Diesen Code ablehnen. Die Edge erfährt es, und nichts wird gespeichert.",
   "help.edges.revoke": "Den Zugang dieser Edge sofort beenden. Um zurückzukommen, muss sie neu verbunden werden.",
-  "help.install.get": "Installer und Paket der aktuellen Edge dieser Cloud, per SHA-256 geprüft."
+  "help.install.get": "Installer und Paket der aktuellen Edge dieser Cloud, per SHA-256 geprüft.",
+  "ago.d": "vor {n} Tagen",
+  "ago.h": "vor {n} Std.",
+  "ago.min": "vor {n} Min.",
+  "ago.now": "gerade eben",
+  "home.active": "Aktiv",
+  "home.active.hint": "In den letzten {days} Tagen von einer Edge genutzt.",
+  "home.active.none": "Keine Edge hat zuletzt einen Bereich genutzt.",
+  "home.anEdge": "einer Edge",
+  "home.edgeUsed": "Auf {edge}, {when}",
+  "home.passive": "Passiv",
+  "home.passive.hint": "Zuletzt auf keiner Edge geöffnet.",
+  "home.passive.none": "Jeder Bereich ist in Gebrauch."
 }
