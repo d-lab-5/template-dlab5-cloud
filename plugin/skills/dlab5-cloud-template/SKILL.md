@@ -76,8 +76,11 @@ stage and production. Check these by hand:
 - **Page titles** (`export const Head` in every `pages/*.tsx`): "Spaces ·
   <name>.dlab5", "Space · …" — the template's nouns and brand.
 - **`app.name`** in `packages/i18n` is "This site"; the About page shows it.
-- **The authenticator label**: `TOTP_ISSUER` in `AuthGate.tsx` and `APP` in
-  `MfaSetup.tsx`. Changing it later only relabels new enrolments.
+- **The authenticator label**: `PRODUCT` in `packages/site/src/lib/totp.ts`
+  (the rename writes `<name>.dlab5`; set the product's own short name). The
+  environment is added from the host, so the label reads "<product> prod" or
+  "<product> stage" (constraint 16). Changing it later only relabels new
+  enrolments.
 - The hosting side, which no file in the repo holds: the rewrites
   (constraint 11), the service role and region (*Deploying a branch*).
 
@@ -364,6 +367,17 @@ These will bite. Each is load-bearing and each has cost someone time.
     pool's MFA is OPTIONAL (members who only read are not asked); `AuthGate`
     and every admin Lambda (`shared/mfa.ts`, AdminGetUser) require TOTP. An ID
     token says nothing about MFA, so never check it there.
+    **The authenticator label names the product and the environment**
+    (`lib/totp.ts`: "maker5.cloud stage", "maker5.cloud prod"), because a
+    person enrols on stage and on prod, for every product, and one app then
+    lists a dozen identical entries. The environment comes from the host
+    (stage., dev., test., qa., sandbox., preview., an Amplify branch host,
+    localhost; anything else is prod), so no build variable is needed. Put
+    nothing else in it: no tenant, account or pool id, since anyone holding
+    the phone sees it; an environment's name is public anyway, in its URL.
+    No colon either: the otpauth label is `<issuer>:<account>`, and a colon in
+    the issuer splits it. Entries enrolled before keep their old name; the
+    person renames them in the app.
 17. **Amplify v6 REJECTS with the whole GraphQL result** when a resolver
     throws. `call()` in `lib/data.ts` unwraps it; a call that bypasses `call()`
     shows "[object Object]".

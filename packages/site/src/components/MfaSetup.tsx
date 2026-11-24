@@ -1,4 +1,5 @@
 import * as React from "react";
+import { totpIssuer } from "../lib/totp";
 import qrcode from "qrcode-generator";
 import { setUpTOTP, updateMFAPreference, verifyTOTPSetup } from "aws-amplify/auth";
 import { useT } from "../lib/i18n";
@@ -14,7 +15,6 @@ import { useT } from "../lib/i18n";
  * so nothing is injected as HTML and the CSP needs no exception.
  */
 
-const APP = "template.dlab5";   // the name an authenticator app shows; rename.mjs rewrites it
 
 export function Qr({ text, size = 176 }: { text: string; size?: number }) {
   const q = qrcode(0, "M");
@@ -65,7 +65,7 @@ export function MfaSetup({ email, onDone }: { email?: string; onDone: () => void
 
   React.useEffect(() => {
     setUpTOTP()
-      .then((d) => setSetup({ uri: d.getSetupUri(APP, email).toString(), secret: d.sharedSecret }))
+      .then((d) => setSetup({ uri: d.getSetupUri(totpIssuer(), email).toString(), secret: d.sharedSecret }))
       .catch(fail);
   }, [email]);
 
